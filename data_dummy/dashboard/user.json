@@ -1,0 +1,52 @@
+[
+  {
+    "id": 1,
+    "username": "qibal",
+    "name": "Qibal",
+    "email": "qibal@example.com",
+    "phoneNumber": "081234567890",
+    "status": "Active",
+    "roleId": "super_admin",
+    "avatar": "https://avatars.githubusercontent.com/u/74609802?v=4"
+  },
+  {
+    "id": 2,
+    "username": "johndoe",
+    "name": "John Doe",
+    "email": "john.doe@example.com",
+    "phoneNumber": "081234567891",
+    "status": "Inactive",
+    "roleId": "investor",
+    "avatar": "https://avatars.githubusercontent.com/u/1024025?v=4"
+  },
+  {
+    "id": 3,
+    "username": "janedoe",
+    "name": "Jane Doe",
+    "email": "jane.doe@example.com",
+    "phoneNumber": "081234567892",
+    "status": "Active",
+    "roleId": "project_manager",
+    "avatar": "https://avatars.githubusercontent.com/u/6128107?v=4"
+  },
+  {
+    "id": 4,
+    "username": "peterjones",
+    "name": "Peter Jones",
+    "email": "peter.jones@example.com",
+    "phoneNumber": "081234567893",
+    "status": "Pending",
+    "roleId": "creative_team",
+    "avatar": "https://avatars.githubusercontent.com/u/4392815?v=4"
+  },
+  {
+    "id": 5,
+    "username": "marysmith",
+    "name": "Mary Smith",
+    "email": "mary.smith@example.com",
+    "phoneNumber": "081234567894",
+    "status": "Active",
+    "roleId": "creative_team",
+    "avatar": "https://avatars.githubusercontent.com/u/1033878?v=4"
+  }
+]

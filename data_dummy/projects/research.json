@@ -1,0 +1,87 @@
+[
+  {
+    "id": "research_001",
+    "projectId": "project_001",
+    "author": {
+      "name": "Jane Doe",
+      "avatar": "https://avatars.githubusercontent.com/u/6128107?v=4"
+    },
+    "title": "Video Idea 1: Product Review",
+    "type": "video_link",
+    "url": "https://www.youtube.com/watch?v=jN_J1QfQ08Y",
+    "description": "Initial idea for reviewing the new XYZ product.",
+    "tags": ["product review", "tech"],
+    "timestamps": [
+      {
+        "time": "0:30",
+        "idea": "Introduce product features"
+      },
+      {
+        "time": "1:45",
+        "idea": "Demonstrate usage"
+      }
+    ],
+    "createdAt": "2023-10-26T10:00:00Z"
+  },
+  {
+    "id": "research_002",
+    "projectId": "project_001",
+    "author": {
+      "name": "Peter Jones",
+      "avatar": "https://avatars.githubusercontent.com/u/4392815?v=4"
+    },
+    "title": "Competitor Analysis",
+    "type": "web_link",
+    "url": "https://www.theverge.com/tech",
+    "description": "Article analyzing competitor's marketing strategy.",
+    "tags": ["marketing", "competitor"],
+    "createdAt": "2023-10-26T11:00:00Z"
+  },
+  {
+    "id": "research_003",
+    "projectId": "project_001",
+    "author": {
+      "name": "Jane Doe",
+      "avatar": "https://avatars.githubusercontent.com/u/6128107?v=4"
+    },
+    "title": "Script Draft - Intro",
+    "type": "text",
+    "content": "Opening lines for the product review video: 'Welcome back, everyone! Today, we're diving deep into the XYZ product...'",
+    "tags": ["script", "draft"],
+    "createdAt": "2023-10-26T12:00:00Z"
+  },
+  {
+    "id": "research_004",
+    "projectId": "project_001",
+    "author": {
+      "name": "Mary Smith",
+      "avatar": "https://avatars.githubusercontent.com/u/1033878?v=4"
+    },
+    "title": "Reference Image - Lighting Setup",
+    "type": "file",
+    "filePath": "/public/image/lighting_setup.png",
+    "description": "Image showing desired lighting setup for studio shots.",
+    "tags": ["visuals", "lighting"],
+    "createdAt": "2023-10-26T13:00:00Z"
+  },
+  {
+    "id": "research_005",
+    "projectId": "project_001",
+    "author": {
+      "name": "Qibal",
+      "avatar": "https://avatars.githubusercontent.com/u/74609802?v=4"
+    },
+    "title": "Embedded Tutorial Video",
+    "type": "embedded_video",
+    "embedCode": "<iframe width='560' height='315' src='https://www.youtube.com/embed/jN_J1QfQ08Y' frameborder='0' allowfullscreen></iframe>",
+    "description": "A tutorial video embedded directly.",
+    "tags": ["tutorial"],
+    "timestamps": [
+        {
+            "time": "0:00",
+            "idea": "Full video overview"
+        }
+    ],
+    "createdAt": "2023-10-26T14:00:00Z"
+  }
+]

@@ -1,0 +1,65 @@
+{
+    "_id": "66b1234567890abcdef12345",
+    "project_id": "proj-001",
+    "name": "Empty Excalidraw Project",
+    "excalidraw_data": {
+      "type": "excalidraw",
+      "version": 2,
+      "source": "https://excalidraw.com",
+      "elements": [],
+      "appState": {
+        "gridSize": 20,
+        "viewBackgroundColor": "#ffffff",
+        "currentItemStrokeColor": "#1e1e1e",
+        "currentItemBackgroundColor": "#ffffff",
+        "currentItemFillStyle": "solid",
+        "currentItemStrokeWidth": 2,
+        "currentItemRoughness": 1,
+        "currentItemOpacity": 100,
+        "currentItemFontFamily": 1,
+        "currentItemFontSize": 16,
+        "currentItemTextAlign": "left",
+        "currentItemStartArrowhead": null,
+        "currentItemEndArrowhead": "arrow",
+        "scrollX": 0,
+        "scrollY": 0,
+        "zoom": {
+          "value": 1
+        },
+        "currentItemRoundness": "round",
+        "gridModeEnabled": false,
+        "isLoading": false,
+        "isResizing": false,
+        "colorPalette": {},
+        "currentStrokeOptions": null,
+        "previousGridSize": null,
+        "frameRendering": {
+          "enabled": true,
+          "clip": true,
+          "name": true,
+          "outline": true
+        },
+        "objectsSnapModeEnabled": false,
+        "activeTool": {
+          "type": "selection",
+          "customType": null
+        },
+        "penMode": false,
+        "exportBackground": true,
+        "exportEmbedScene": false,
+        "exportWithDarkMode": false,
+        "exportScale": 1,
+        "currentItemAngle": 0,
+        "currentItemLinearStrokeSharpness": "round",
+        "zenModeEnabled": false,
+        "theme": "light",
+        "penColor": "#000000",
+        "penWidth": 1,
+        "shouldCacheIgnoreZoom": false,
+        "currentItemStrokeSharpness": "round"
+      },
+      "files": {}
+    },
+    "created_at": "2025-07-12T14:11:00Z",
+    "updated_at": "2025-07-12T14:15:30Z"
+  }

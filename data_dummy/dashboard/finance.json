@@ -1,0 +1,62 @@
+[
+  {
+    "id": 1,
+    "date": "2024-07-20",
+    "time": "10:30",
+    "type": "Pemasukan",
+    "account": "Main Savings",
+    "title": "Gaji Bulanan",
+    "description": "Pemasukan gaji dari pekerjaan utama.",
+    "amount": 5000000,
+    "category": "Pendapatan",
+    "bookmark": true
+  },
+  {
+    "id": 2,
+    "date": "2024-07-20",
+    "time": "11:00",
+    "type": "Pengeluaran",
+    "account": "Debit Card",
+    "title": "Belanja Mingguan",
+    "description": "Pembelian bahan makanan dan kebutuhan rumah tangga.",
+    "amount": 750000,
+    "category": "Makanan",
+    "bookmark": false
+  },
+  {
+    "id": 3,
+    "date": "2024-07-19",
+    "time": "15:45",
+    "type": "Pemasukan",
+    "account": "Freelance Account",
+    "title": "Proyek Freelance A",
+    "description": "Pembayaran proyek website dari klien.",
+    "amount": 2500000,
+    "category": "Pendapatan Tambahan",
+    "bookmark": true
+  },
+  {
+    "id": 4,
+    "date": "2024-07-19",
+    "time": "19:00",
+    "type": "Pengeluaran",
+    "account": "Cash",
+    "title": "Makan Malam",
+    "description": "Makan malam di restoran bersama keluarga.",
+    "amount": 200000,
+    "category": "Hiburan",
+    "bookmark": false
+  },
+  {
+    "id": 5,
+    "date": "2024-07-18",
+    "time": "08:15",
+    "type": "Pengeluaran",
+    "account": "Credit Card",
+    "title": "Pembayaran Listrik",
+    "description": "Tagihan listrik bulan Juni.",
+    "amount": 350000,
+    "category": "Tagihan",
+    "bookmark": false
+  }
+]

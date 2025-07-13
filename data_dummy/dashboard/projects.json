@@ -1,0 +1,94 @@
+[
+  {
+    "id": 1,
+    "image": "https://picsum.photos/seed/project1/300/200",
+    "title": "Website Redesign",
+    "description": "Full redesign of the company's main website, focusing on modern UI/UX and improved performance. This project involves front-end development using React, back-end development with Node.js, and a new database schema. The goal is to enhance user engagement and streamline the content management system.",
+    "status": "Production",
+    "priority": "Urgent",
+    "start_date": "2024-06-01",
+    "due_date": "2024-08-31",
+    "completed_date": null,
+    "progress": 60,
+    "budget": 150000000,
+    "actual_cost": 90000000,
+    "assigned_to": "John Doe",
+    "created_by": "Jane Smith",
+    "tags": ["Web", "UI/UX", "Development"],
+    "created_at": "2024-05-20T10:00:00Z",
+    "updated_at": "2024-07-15T14:30:00Z",
+    "custom_fields": {
+      "client": "ABC Corp",
+      "version": "2.0"
+    }
+  },
+  {
+    "id": 2,
+    "image": "https://picsum.photos/seed/project2/300/200",
+    "title": "Mobile App Development",
+    "description": "Developing a new mobile application for both iOS and Android platforms. This app will integrate with existing backend services and provide real-time data updates. It includes features like user authentication, data synchronization, and push notifications. The focus is on a seamless user experience and robust offline capabilities.",
+    "status": "Research",
+    "priority": "High",
+    "start_date": "2024-07-01",
+    "due_date": "2024-10-31",
+    "completed_date": null,
+    "progress": 20,
+    "budget": 200000000,
+    "actual_cost": 40000000,
+    "assigned_to": "Qibal",
+    "created_by": "Peter Jones",
+    "tags": ["Mobile", "iOS", "Android"],
+    "created_at": "2024-06-25T09:30:00Z",
+    "updated_at": "2024-07-10T11:00:00Z",
+    "custom_fields": {
+      "platform": "Hybrid",
+      "api_version": "v1"
+    }
+  },
+  {
+    "id": 3,
+    "image": "https://picsum.photos/seed/project3/300/200",
+    "title": "API Integration for Partners",
+    "description": "Integrating our internal APIs with key external partners to facilitate data exchange and automate workflows. This project requires close collaboration with third-party teams and ensuring data security and compliance with industry standards. Performance and scalability are critical aspects.",
+    "status": "Planning",
+    "priority": "Medium",
+    "start_date": "2024-08-01",
+    "due_date": "2024-09-30",
+    "completed_date": null,
+    "progress": 10,
+    "budget": 80000000,
+    "actual_cost": 5000000,
+    "assigned_to": "Mary Smith",
+    "created_by": "Jane Smith",
+    "tags": ["API", "Integration", "Partnerships"],
+    "created_at": "2024-07-01T14:00:00Z",
+    "updated_at": "2024-07-05T16:00:00Z",
+    "custom_fields": {
+      "partner_name": "Global Connect",
+      "auth_method": "OAuth2"
+    }
+  },
+  {
+    "id": 4,
+    "image": "https://picsum.photos/seed/project4/300/200",
+    "title": "Internal Tool Development",
+    "description": "Building an internal tool to automate various administrative tasks and improve team productivity. This tool will include features like task management, resource allocation, and reporting, tailored to our specific operational needs. The aim is to reduce manual effort and increase efficiency across departments.",
+    "status": "Completed",
+    "priority": "Low",
+    "start_date": "2024-04-15",
+    "due_date": "2024-06-30",
+    "completed_date": "2024-06-28",
+    "progress": 100,
+    "budget": 100000000,
+    "actual_cost": 95000000,
+    "assigned_to": "John Doe",
+    "created_by": "Qibal",
+    "tags": ["Internal Tool", "Automation", "Productivity"],
+    "created_at": "2024-04-01T09:00:00Z",
+    "updated_at": "2024-06-28T17:00:00Z",
+    "custom_fields": {
+      "department": "Operations",
+      "stakeholders": "All"
+    }
+  }
+]

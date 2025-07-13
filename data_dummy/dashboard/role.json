@@ -1,0 +1,27 @@
+[
+  {
+    "id": "super_admin",
+    "name": "Super Admin",
+    "description": "Memiliki akses penuh ke semua fitur dan pengaturan sistem."
+  },
+  {
+    "id": "project_manager",
+    "name": "Project Manager",
+    "description": "Mengelola proyek, termasuk jadwal, budget, dan tim yang ditugaskan."
+  },
+  {
+    "id": "creative_team",
+    "name": "Creative Team",
+    "description": "Mengerjakan tugas-tugas kreatif seperti storyboard, aset, dan animasi."
+  },
+  {
+    "id": "investor",
+    "name": "Investor",
+    "description": "Memiliki akses lihat-saja ke data finansial dan ringkasan progres proyek."
+  },
+  {
+    "id": "client",
+    "name": "Client",
+    "description": "Memiliki akses lihat-saja untuk me-review progres proyek yang spesifik."
+  }
+]

@@ -1,0 +1,54 @@
+{
+  "super_admin": {
+    "dashboard": "full_access",
+    "users": "full_access",
+    "projects": "full_access",
+    "finance": "full_access",
+    "analytics": "full_access",
+    "asset": "full_access",
+    "settings": "full_access",
+    "project_overview": "full_access",
+    "project_research": "full_access",
+    "project_pre_production": "full_access",
+    "project_production": "full_access",
+    "project_post_production": "full_access",
+    "project_final": "full_access",
+    "project_management": "full_access"
+  },
+  "project_manager": {
+    "dashboard": "read_only",
+    "projects": "full_access",
+    "asset": "edit",
+    "settings": "read_only",
+    "project_overview": "full_access",
+    "project_research": "full_access",
+    "project_pre_production": "full_access",
+    "project_production": "full_access",
+    "project_post_production": "full_access",
+    "project_final": "full_access",
+    "project_management": "full_access"
+  },
+  "creative_team": {
+    "projects": "read_only",
+    "asset": "edit",
+    "project_overview": "read_only",
+    "project_research": "edit",
+    "project_pre_production": "edit",
+    "project_production": "edit",
+    "project_post_production": "edit",
+    "project_final": "read_only",
+    "project_management": "read_only"
+  },
+  "investor": {
+    "dashboard": "read_only",
+    "finance": "read_only",
+    "analytics": "read_only",
+    "project_overview": "read_only"
+  },
+  "client": {
+    "project_overview": "read_only",
+    "project_pre_production": "read_only",
+    "project_post_production": "read_only",
+    "project_final": "read_only"
+  }
+}
