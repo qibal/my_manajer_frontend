@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
     Hash,
     Volume2,
@@ -36,7 +36,10 @@ import {
     Pencil,
     Check,
     CheckCheck,
-    SmilePlus
+    SmilePlus,
+    X,
+    ChevronLeft,
+    ChevronRight
 } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/Shadcn/avatar"
 import { Button } from "@/components/Shadcn/button"
@@ -175,32 +178,32 @@ const onlineUsers = [
 // Updated mock chat messages with new fields
 const chatMessages = [
     // Day 1
-    { id: 1, user: "John Doe", message: "Hey everyone! How's the project going?", timestamp: "2025-02-18T10:30:00Z", avatar: "/placeholder.svg?height=32&width=32", edited: false, reactions: [{ emoji: "👍", count: 3 }], readStatus: null },
-    { id: 2, user: "Jane Smith", message: "Making good progress on the frontend. Should be ready for review by tomorrow.", timestamp: "2025-02-18T10:32:00Z", avatar: "/placeholder.svg?height=32&width=32", edited: true, reactions: [], readStatus: null },
-    { id: 3, user: "Iqbal", message: "Great! I'll check it out first thing in the morning.", timestamp: "2025-02-18T10:35:00Z", avatar: "https://github.com/shadcn.png", edited: false, reactions: [{ emoji: "🔥", count: 1 }], readStatus: 'read' },
-    { id: 4, user: "Alex Chen", message: "Backend API is deployed and documented. Let me know if you find any issues.", timestamp: "2025-02-18T11:00:00Z", avatar: "/placeholder.svg?height=32&width=32", edited: false, reactions: [{ emoji: "✅", count: 2 }], readStatus: null },
+    { id: 1, user: "John Doe", message: "Hey everyone! How's the project going?", timestamp: "2025-02-18T10:30:00Z", avatar: "/placeholder.svg?height=32&width=32", edited: false, reactions: [{emoji: "👍", count: 3}], readStatus: null, pinned: false },
+    { id: 2, user: "Jane Smith", message: "Making good progress on the frontend. Should be ready for review by tomorrow.", timestamp: "2025-02-18T10:32:00Z", avatar: "/placeholder.svg?height=32&width=32", edited: true, reactions: [], readStatus: null, pinned: true },
+    { id: 3, user: "Iqbal", message: "Great! I'll check it out first thing in the morning.", timestamp: "2025-02-18T10:35:00Z", avatar: "https://github.com/shadcn.png", edited: false, reactions: [{emoji: "🔥", count: 1}], readStatus: 'read', pinned: false },
+    { id: 4, user: "Alex Chen", message: "Backend API is deployed and documented. Let me know if you find any issues.", timestamp: "2025-02-18T11:00:00Z", avatar: "/placeholder.svg?height=32&width=32", edited: false, reactions: [{emoji: "✅", count: 2}], readStatus: null, pinned: false },
 
     // Day 2
-    { id: 5, user: "Sarah Wilson", message: "Perfect timing. Let's schedule a review meeting for Thursday.", timestamp: "2025-02-19T09:00:00Z", avatar: "/placeholder.svg?height=32&width=32", edited: false, reactions: [], readStatus: null },
-    { id: 6, user: "Iqbal", message: "Sounds good to me!", timestamp: "2025-02-19T09:05:00Z", avatar: "https://github.com/shadcn.png", edited: false, reactions: [], readStatus: 'delivered' },
-    { id: 7, user: "David Lee", message: "I've updated the product roadmap with the new timeline.", timestamp: "2025-02-19T10:15:00Z", avatar: "/placeholder.svg?height=32&width=32", edited: false, reactions: [{ emoji: "🗺️", count: 1 }], readStatus: null },
-    { id: 8, user: "Iqbal", message: "Thanks, David. I've pushed the latest frontend updates.", timestamp: "2025-02-19T11:42:00Z", avatar: "https://github.com/shadcn.png", edited: true, reactions: [], readStatus: 'sent' },
-    { id: 9, user: "Emma Wilson", message: "The design assets for the new feature are now available in Figma.", timestamp: "2025-02-19T14:20:00Z", avatar: "/placeholder.svg?height=32&width=32", edited: false, reactions: [{ emoji: "🎨", count: 4 }], readStatus: null },
+    { id: 5, user: "Sarah Wilson", message: "Perfect timing. Let's schedule a review meeting for Thursday.", timestamp: "2025-02-19T09:00:00Z", avatar: "/placeholder.svg?height=32&width=32", edited: false, reactions: [], readStatus: null, pinned: true },
+    { id: 6, user: "Iqbal", message: "Sounds good to me!", timestamp: "2025-02-19T09:05:00Z", avatar: "https://github.com/shadcn.png", edited: false, reactions: [], readStatus: 'delivered', pinned: false },
+    { id: 7, user: "David Lee", message: "I've updated the product roadmap with the new timeline.", timestamp: "2025-02-19T10:15:00Z", avatar: "/placeholder.svg?height=32&width=32", edited: false, reactions: [{emoji: "🗺️", count: 1}], readStatus: null, pinned: false },
+    { id: 8, user: "Iqbal", message: "Thanks, David. I've pushed the latest frontend updates.", timestamp: "2025-02-19T11:42:00Z", avatar: "https://github.com/shadcn.png", edited: true, reactions: [], readStatus: 'sent', pinned: false },
+    { id: 9, user: "Emma Wilson", message: "The design assets for the new feature are now available in Figma.", timestamp: "2025-02-19T14:20:00Z", avatar: "/placeholder.svg?height=32&width=32", edited: false, reactions: [{emoji: "🎨", count: 4}], readStatus: null, pinned: true },
 
     // Day 3
-    { id: 10, user: "Tom Brown", message: "Here's the weekly analytics report. We're seeing a great trend in user engagement.", timestamp: "2025-02-20T16:00:00Z", avatar: "/placeholder.svg?height=32&width=32", edited: false, reactions: [{ emoji: "📈", count: 5 }], readStatus: null },
-    { id: 11, user: "Iqbal", message: "Awesome numbers! Keep up the great work, team.", timestamp: "2025-02-20T16:05:00Z", avatar: "https://github.com/shadcn.png", edited: false, reactions: [{ emoji: "🎉", count: 10 }], readStatus: 'read' },
-    { id: 12, user: "Lisa Davis", message: "The new marketing campaign is ready to launch tomorrow morning.", timestamp: "2025-02-20T17:30:00Z", avatar: "/placeholder.svg?height=32&width=32", edited: false, reactions: [], readStatus: null },
-    { id: 13, user: "Iqbal", message: "Let's do it!", timestamp: "2025-02-20T17:31:00Z", avatar: "https://github.com/shadcn.png", edited: false, reactions: [], readStatus: 'read' },
-    { id: 14, user: "Sophie Turner", message: "QA testing for the mobile app is complete. No major blockers found.", timestamp: "2025-02-20T18:00:00Z", avatar: "/placeholder.svg?height=32&width=32", edited: false, reactions: [{ emoji: "👍", count: 2 }], readStatus: null },
+    { id: 10, user: "Tom Brown", message: "Here's the weekly analytics report. We're seeing a great trend in user engagement.", timestamp: "2025-02-20T16:00:00Z", avatar: "/placeholder.svg?height=32&width=32", edited: false, reactions: [{emoji: "📈", count: 5}], readStatus: null, pinned: false },
+    { id: 11, user: "Iqbal", message: "Awesome numbers! Keep up the great work, team.", timestamp: "2025-02-20T16:05:00Z", avatar: "https://github.com/shadcn.png", edited: false, reactions: [{emoji: "🎉", count: 10}], readStatus: 'read', pinned: false },
+    { id: 12, user: "Lisa Davis", message: "The new marketing campaign is ready to launch tomorrow morning.", timestamp: "2025-02-20T17:30:00Z", avatar: "/placeholder.svg?height=32&width=32", edited: false, reactions: [], readStatus: null, pinned: false },
+    { id: 13, user: "Iqbal", message: "Let's do it!", timestamp: "2025-02-20T17:31:00Z", avatar: "https://github.com/shadcn.png", edited: false, reactions: [], readStatus: 'read', pinned: false },
+    { id: 14, user: "Sophie Turner", message: "QA testing for the mobile app is complete. No major blockers found.", timestamp: "2025-02-20T18:00:00Z", avatar: "/placeholder.svg?height=32&width=32", edited: false, reactions: [{emoji: "👍", count: 2}], readStatus: null, pinned: false },
 
     // Day 4
-    { id: 15, user: "Chris Evans", message: "I've cleared all the critical support tickets from the queue.", timestamp: "2025-02-21T10:00:00Z", avatar: "/placeholder.svg?height=32&width=32", edited: false, reactions: [], readStatus: null },
-    { id: 16, user: "Iqbal", message: "Great job, Chris!", timestamp: "2025-02-21T10:02:00Z", avatar: "https://github.com/shadcn.png", edited: false, reactions: [], readStatus: 'read' },
-    { id: 17, user: "Robert Downey", message: "Code review for the payment module is scheduled for this afternoon.", timestamp: "2025-02-21T11:00:00Z", avatar: "/placeholder.svg?height=32&width=32", edited: false, reactions: [], readStatus: null },
-    { id: 18, user: "Mark Ruffalo", message: "Just submitted the finance report for Q1.", timestamp: "2025-02-21T11:30:00Z", avatar: "/placeholder.svg?height=32&width=32", edited: true, reactions: [{ emoji: "📄", count: 1 }], readStatus: null },
-    { id: 19, user: "Scarlett Johansson", message: "A reminder about the new HR policies, please review them by the end of the week.", timestamp: "2025-02-21T15:00:00Z", avatar: "/placeholder.svg?height=32&width=32", edited: false, reactions: [], readStatus: null },
-    { id: 20, user: "Iqbal", message: "Will do, thanks for the reminder.", timestamp: "2025-02-21T15:05:00Z", avatar: "https://github.com/shadcn.png", edited: false, reactions: [], readStatus: 'delivered' }
+    { id: 15, user: "Chris Evans", message: "I've cleared all the critical support tickets from the queue.", timestamp: "2025-02-21T10:00:00Z", avatar: "/placeholder.svg?height=32&width=32", edited: false, reactions: [], readStatus: null, pinned: false },
+    { id: 16, user: "Iqbal", message: "Great job, Chris!", timestamp: "2025-02-21T10:02:00Z", avatar: "https://github.com/shadcn.png", edited: false, reactions: [], readStatus: 'read', pinned: false },
+    { id: 17, user: "Robert Downey", message: "Code review for the payment module is scheduled for this afternoon.", timestamp: "2025-02-21T11:00:00Z", avatar: "/placeholder.svg?height=32&width=32", edited: false, reactions: [], readStatus: null, pinned: false },
+    { id: 18, user: "Mark Ruffalo", message: "Just submitted the finance report for Q1.", timestamp: "2025-02-21T11:30:00Z", avatar: "/placeholder.svg?height=32&width=32", edited: true, reactions: [{emoji: "📄", count: 1}], readStatus: null, pinned: false },
+    { id: 19, user: "Scarlett Johansson", message: "A reminder about the new HR policies, please review them by the end of the week.", timestamp: "2025-02-21T15:00:00Z", avatar: "/placeholder.svg?height=32&width=32", edited: false, reactions: [], readStatus: null, pinned: false },
+    { id: 20, user: "Iqbal", message: "Will do, thanks for the reminder.", timestamp: "2025-02-21T15:05:00Z", avatar: "https://github.com/shadcn.png", edited: false, reactions: [], readStatus: 'delivered', pinned: false }
 ];
 
 const currentUser = {
@@ -256,10 +259,69 @@ const ReadReceipt = ({ status }) => {
 // Chat Channel Component
 const ChatChannel = ({ channel }) => {
     const [message, setMessage] = useState("")
+    const [showPinned, setShowPinned] = useState(true);
+    const [pinnedIndex, setPinnedIndex] = useState(0);
     let lastMessageDate = null;
+
+    const pinnedMessages = chatMessages.filter(msg => msg.pinned);
+
+    const scrollToMessage = (messageId) => {
+        const messageEl = document.getElementById(`message-${messageId}`);
+        if (messageEl) {
+            messageEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            const bubbleEl = messageEl.querySelector('.message-bubble');
+            if (bubbleEl) {
+                bubbleEl.classList.add('highlight-scroll');
+                setTimeout(() => {
+                    bubbleEl.classList.remove('highlight-scroll');
+                }, 1500);
+            }
+        }
+    };
+
+    useEffect(() => {
+        if (showPinned && pinnedMessages.length > 0) {
+            const messageId = pinnedMessages[pinnedIndex].id;
+            // We don't auto-scroll on first load, only on navigation.
+            // But for this demo, we can scroll on index change.
+            scrollToMessage(messageId);
+        }
+    }, [pinnedIndex]);
+
+    const handleNextPinned = () => {
+        setPinnedIndex((prevIndex) => (prevIndex + 1) % pinnedMessages.length);
+    };
+
+    const handlePrevPinned = () => {
+        setPinnedIndex((prevIndex) => (prevIndex - 1 + pinnedMessages.length) % pinnedMessages.length);
+    };
 
     return (
         <div className="flex flex-col h-full bg-background">
+            {showPinned && pinnedMessages.length > 0 && (
+                <div className="flex items-center p-2 border-b bg-muted/50 text-sm flex-shrink-0">
+                    <Pin className="w-4 h-4 mr-3 text-yellow-500" />
+                    <div
+                        className="flex-1 min-w-0 cursor-pointer"
+                        onClick={() => scrollToMessage(pinnedMessages[pinnedIndex].id)}
+                    >
+                        <span className="font-semibold">{pinnedMessages[pinnedIndex].user}: </span>
+                        <span className="text-muted-foreground truncate">{pinnedMessages[pinnedIndex].message}</span>
+                    </div>
+                    <div className="flex items-center ml-4">
+                        <span className="text-xs text-muted-foreground">{pinnedIndex + 1} of {pinnedMessages.length}</span>
+                        <Button variant="ghost" size="icon" className="w-6 h-6 ml-2" onClick={handlePrevPinned} disabled={pinnedMessages.length <= 1}>
+                            <ChevronLeft className="w-4 h-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="w-6 h-6" onClick={handleNextPinned} disabled={pinnedMessages.length <= 1}>
+                            <ChevronRight className="w-4 h-4" />
+                        </Button>
+                        {/* <Button variant="ghost" size="icon" className="w-6 h-6 ml-2" onClick={() => setShowPinned(false)}>
+                            <X className="w-4 h-4" />
+                        </Button> */}
+                    </div>
+                </div>
+            )}
             <div className="flex-1 overflow-hidden">
                 <ScrollArea className="h-full p-4">
                     <div className="space-y-2">
@@ -269,7 +331,7 @@ const ChatChannel = ({ channel }) => {
                             lastMessageDate = currentMessageDate;
 
                             return (
-                                <div key={msg.id}>
+                                <div key={msg.id} id={`message-${msg.id}`}>
                                     {showDateSeparator && (
                                         <div className="relative my-4">
                                             <div className="absolute inset-0 flex items-center" aria-hidden="true">
@@ -291,7 +353,7 @@ const ChatChannel = ({ channel }) => {
                                                 )}
                                                 <div className={`flex flex-col max-w-[75%] ${msg.user === currentUserName ? 'items-end' : 'items-start'}`}>
                                                     <div
-                                                        className={`relative rounded-2xl px-3 py-2 transition-colors border group-hover:bg-accent/40
+                                                        className={`message-bubble relative rounded-2xl px-3 py-2 transition-colors border group-hover:bg-accent/40
                                                             ${msg.user === currentUserName ? 'bg-white border-blue-200 text-black' : 'bg-muted border-muted text-foreground'}`
                                                         }
                                                     >
