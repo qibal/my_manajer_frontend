@@ -1,0 +1,113 @@
+[
+  {
+    "_id": "message_1",
+    "channelId": "channel_1",
+    "userId": "user_1",
+    "content": "Selamat datang di channel General! Silakan perkenalkan diri kalian.",
+    "createdAt": "2024-07-28T11:00:00Z",
+    "updatedAt": null,
+    "isPinned": false,
+    "reactions": [
+      {
+        "emoji": "👋",
+        "userIds": ["user_2", "user_3"]
+      }
+    ],
+    "readStatus": "read",
+    "user": "Andi",
+    "avatar": "https://i.pravatar.cc/150?u=user_1"
+  },
+  {
+    "_id": "message_2",
+    "channelId": "channel_1",
+    "userId": "user_2",
+    "content": "Halo semua! Saya Budi, seorang desainer grafis. Senang bergabung!",
+    "createdAt": "2024-07-28T11:01:00Z",
+    "updatedAt": null,
+    "isPinned": false,
+    "reactions": [
+      {
+        "emoji": "👍",
+        "userIds": ["user_1"]
+      }
+    ],
+    "readStatus": "sent",
+    "user": "Budi",
+    "avatar": "https://i.pravatar.cc/150?u=user_2"
+  },
+  {
+    "_id": "message_3",
+    "channelId": "channel_1",
+    "userId": "user_3",
+    "content": "Hai, saya Cinta, frontend developer di sini. Salam kenal!",
+    "createdAt": "2024-07-28T11:02:00Z",
+    "updatedAt": "2024-07-28T11:02:30Z",
+    "isPinned": false,
+    "reactions": [],
+    "readStatus": "delivered",
+    "user": "Cinta",
+    "avatar": "https://i.pravatar.cc/150?u=user_3"
+  },
+  {
+    "_id": "message_4",
+    "channelId": "channel_1",
+    "userId": "user_1",
+    "content": "Mantap! Kita akan mulai proyek baru minggu depan, info detail akan saya share di channel pengumuman ya.",
+    "createdAt": "2024-07-28T11:05:00Z",
+    "updatedAt": null,
+    "isPinned": false,
+    "reactions": [
+      {
+        "emoji": "🔥",
+        "userIds": ["user_2", "user_3", "user_4"]
+      }
+    ],
+    "readStatus": "read",
+    "user": "Andi",
+    "avatar": "https://i.pravatar.cc/150?u=user_1"
+  },
+  {
+    "_id": "message_5",
+    "channelId": "channel_2",
+    "userId": "user_1",
+    "content": "@here **PENGUMUMAN PENTING**: Kick-off meeting untuk Project Alpha akan diadakan besok jam 10:00 pagi. Kehadiran wajib.",
+    "createdAt": "2024-07-28T12:00:00Z",
+    "updatedAt": null,
+    "isPinned": true,
+    "reactions": [],
+    "readStatus": "read",
+    "user": "Andi",
+    "avatar": "https://i.pravatar.cc/150?u=user_1"
+  },
+  {
+    "_id": "message_6",
+    "channelId": "channel_7",
+    "userId": "user_2",
+    "content": "Ada yang sudah punya ide untuk skema warna Project Alpha?",
+    "createdAt": "2024-07-28T13:00:00Z",
+    "updatedAt": null,
+    "isPinned": false,
+    "reactions": [],
+    "readStatus": "sent",
+    "user": "Budi",
+    "avatar": "https://i.pravatar.cc/150?u=user_2"
+  },
+  {
+    "_id": "message_7",
+    "channelId": "channel_7",
+    "userId": "user_3",
+    "content": "Aku lagi cari-cari referensi, mungkin tema monokromatik dengan aksen biru bisa jadi pilihan bagus.",
+    "createdAt": "2024-07-28T13:05:00Z",
+    "updatedAt": null,
+    "isPinned": false,
+    "reactions": [
+      {
+        "emoji": "💡",
+        "userIds": ["user_2"]
+      }
+    ],
+    "readStatus": "read",
+    "user": "Cinta",
+    "avatar": "https://i.pravatar.cc/150?u=user_3"
+  }
+] 
