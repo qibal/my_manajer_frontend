@@ -18,25 +18,39 @@ import DocumentChannel from "@/components/organisms/Discord/DocumentChannel"
 import DatabaseChannel from "@/components/organisms/Discord/DatabaseChannel"
 import ReportChannel from "@/components/organisms/Discord/ReportChannel"
 import BusinessServers from "@/components/organisms/Discord/BusinessServers"
-import MobileSidebarView from "@/components/organisms/Discord/mobile/MobileSidebarView"
+import MobileBusinessServers from "@/components/organisms/Discord/mobile/MobileSidebarView"
 import MobileChannelView from "@/components/organisms/Discord/mobile/MobileChannelView"
 import ChannelSidebar from "@/components/organisms/Discord/desktop/ChannelSidebar"
 import MainContent from "@/components/organisms/Discord/desktop/MainContent"
-import { businesses, channels, onlineUsers, getStatusColor } from "@/discord_data_dummy/discordData";
+import channelData from "@/discord_data_dummy/channels.json";
+import { onlineUsers, getStatusColor } from "@/discord_data_dummy/discordData";
+import businessService from "@/service/business_service";
 
 const renderChannelContent = (channel) => {
+  if (!channel) {
+    return (
+      <div className="flex flex-col h-full items-center justify-center text-muted-foreground">
+        <p>No channel selected or channel data not available.</p>
+      </div>
+    );
+  }
   switch (channel?.type) {
     case "text":
+    case "messages":
       return <ChatChannel channel={channel} />
     case "voice":
       return <VoiceChannel channel={channel} />
     case "draw":
+    case "drawings":
       return <DrawChannel channel={channel} />
     case "document":
+    case "documents":
       return <DocumentChannel channel={channel} />
     case "database":
+    case "databases":
       return <DatabaseChannel channel={channel} />
     case "report":
+    case "reports":
       return <ReportChannel channel={channel} />
     default:
       return <ChatChannel channel={channel} />
@@ -44,15 +58,16 @@ const renderChannelContent = (channel) => {
 }
 
 export default function DiscordDashboard() {
-  const [selectedBusiness, setSelectedBusiness] = useState(1)
-  const [selectedChannel, setSelectedChannel] = useState(1)
+  const [selectedBusiness, setSelectedBusiness] = useState(null);
+  const [selectedChannel, setSelectedChannel] = useState(null);
   const [rightSidebarSize, setRightSidebarSize] = useState(20)
   const [isRightSidebarMaximized, setIsRightSidebarMaximized] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
   const [showChannelView, setShowChannelView] = useState(false)
+  const [businessList, setBusinessList] = useState([]);
 
-  const currentChannels = channels[selectedBusiness] || []
-  const currentChannel = currentChannels.find((c) => c.id === selectedChannel)
+  const currentChannels = channelData.filter(channel => channel.businessId === selectedBusiness);
+  const currentChannel = currentChannels.find((c) => c._id === selectedChannel)
 
     const groupedChannels = currentChannels.reduce((acc, channel) => {
         const category = channel.category || 'Uncategorized';
@@ -91,6 +106,19 @@ export default function DiscordDashboard() {
     return () => window.removeEventListener("resize", checkMobile)
   }, [])
 
+  useEffect(() => {
+    // Ambil data bisnis dari backend
+    businessService.getAll().then((res) => {
+      if (res && res.data && res.data.length > 0) {
+        setBusinessList(res.data);
+        setSelectedBusiness(res.data[0]._id);
+        // Otomatis pilih channel pertama dari bisnis pertama, untuk sementara set ke null untuk isolasi masalah
+        // const firstChannel = channelData.find(channel => channel.businessId === res.data[0]._id);
+        setSelectedChannel(null); // Atau bisa set ke ID channel dummy jika diperlukan untuk rendering
+      }
+    });
+  }, []);
+
   // Mobile Channel View
   if (isMobile && showChannelView) {
     return (
@@ -107,7 +135,7 @@ export default function DiscordDashboard() {
   // Mobile Sidebar View
   if (isMobile) {
     return (
-           <MobileSidebarView 
+           <MobileBusinessServers 
                 selectedBusiness={selectedBusiness}
                 setSelectedBusiness={setSelectedBusiness}
                 selectedChannel={selectedChannel}
@@ -123,9 +151,11 @@ export default function DiscordDashboard() {
             <div className="flex h-screen bg-background overflow-hidden">
         {/* Left Sidebar - Business Servers */}
                 <BusinessServers 
+                    businessData={businessList}
                     selectedBusiness={selectedBusiness}
                     setSelectedBusiness={setSelectedBusiness}
                     setSelectedChannel={setSelectedChannel}
+                    onBusinessAdded={(newBusiness) => setBusinessList((prevList) => [...prevList, newBusiness])}
                 />
 
         {/* Main Content Area */}
