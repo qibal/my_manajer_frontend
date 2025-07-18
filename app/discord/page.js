@@ -59,6 +59,7 @@ const renderChannelContent = (channel) => {
 
 export default function DiscordDashboard() {
   const [selectedBusiness, setSelectedBusiness] = useState(null);
+  console.log("🚀 ~ DiscordDashboard ~ selectedBusiness:", selectedBusiness)
   const [selectedChannel, setSelectedChannel] = useState(null);
   const [rightSidebarSize, setRightSidebarSize] = useState(20)
   const [isRightSidebarMaximized, setIsRightSidebarMaximized] = useState(false)
@@ -67,6 +68,7 @@ export default function DiscordDashboard() {
   const [businessList, setBusinessList] = useState([]);
 
   const currentChannels = channelData.filter(channel => channel.businessId === selectedBusiness);
+  console.log("🚀 ~ DiscordDashboard ~ currentChannels:", currentChannels)
   const currentChannel = currentChannels.find((c) => c._id === selectedChannel)
 
     const groupedChannels = currentChannels.reduce((acc, channel) => {
@@ -111,7 +113,7 @@ export default function DiscordDashboard() {
     businessService.getAll().then((res) => {
       if (res && res.data && res.data.length > 0) {
         setBusinessList(res.data);
-        setSelectedBusiness(res.data[0]._id);
+        setSelectedBusiness(res.data[0].id);
         // Otomatis pilih channel pertama dari bisnis pertama, untuk sementara set ke null untuk isolasi masalah
         // const firstChannel = channelData.find(channel => channel.businessId === res.data[0]._id);
         setSelectedChannel(null); // Atau bisa set ke ID channel dummy jika diperlukan untuk rendering

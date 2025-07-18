@@ -86,17 +86,17 @@ export default function BusinessServers({ businessData, selectedBusiness, setSel
         <ScrollArea className="flex-1 w-full">
             <div className="flex flex-col items-center space-y-2 px-2">
                 {businessData.map((business, idx) => {
-                    const firstChannelForBusiness = channelData.find(channel => channel.businessId === business._id);
+                    const firstChannelForBusiness = channelData.find(channel => channel.businessId === business.id);
                     return (
-                        <Tooltip key={business._id || idx}>
+                        <Tooltip key={business.id || idx}>
                             <TooltipTrigger asChild>
                                 <Button
-                                    variant={selectedBusiness === business._id ? "default" : "ghost"}
+                                    variant={selectedBusiness === business.id ? "default" : "ghost"}
                                     size="icon"
-                                    className={`w-12 h-12 rounded-2xl transition-all duration-200 ${selectedBusiness === business._id ? "rounded-xl" : "hover:rounded-xl"
+                                    className={`w-12 h-12 rounded-2xl transition-all duration-200 ${selectedBusiness === business.id ? "rounded-xl" : "hover:rounded-xl"
                                         }`}
                                     onClick={() => {
-                                        setSelectedBusiness(business._id)
+                                        setSelectedBusiness(business.id)
                                         setSelectedChannel(firstChannelForBusiness ? firstChannelForBusiness._id : null)
                                     }}
                                 >
