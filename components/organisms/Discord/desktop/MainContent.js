@@ -20,6 +20,16 @@ import DatabaseChannel from "@/components/organisms/Discord/DatabaseChannel"
 import ReportChannel from "@/components/organisms/Discord/ReportChannel"
 
 export default function MainContent({ currentChannel, renderChannelContent }) {
+    if (!currentChannel) {
+        return (
+            <ResizablePanel defaultSize={60}>
+                <div className="flex flex-col h-full items-center justify-center text-muted-foreground">
+                    <p>No channel selected for this business or channel data not available.</p>
+                </div>
+            </ResizablePanel>
+        );
+    }
+
     return (
         <ResizablePanel defaultSize={60}>
                         <div className="h-full flex flex-col">

@@ -77,16 +77,31 @@ import UserProfileCard from "@/components/organisms/Discord/userProfileCard"
 import businessService from "@/service/business_service";
 import channelData from "@/discord_data_dummy/channels.json";
 import { AddBusinessDialog } from "./AddBusinessDialog";
+import { useRouter } from 'next/navigation';
 
-export default function BusinessServers({ businessData, selectedBusiness, setSelectedBusiness, setSelectedChannel, onBusinessAdded }) {
-    // Tidak perlu useState dan useEffect untuk bisnis
-    console.log(businessData);
+export default function BusinessServers({ businessData, selectedBusiness, setSelectedBusiness, onBusinessAdded, channels }) {
+    const router = useRouter();
+    console.log("BusinessServers: Render - businessData prop", businessData);
+    console.log("BusinessServers: Render - channels prop", channels);
+
+    // Defensive checks to ensure props are arrays
+    const safeBusinessData = Array.isArray(businessData) ? businessData : [];
+    const safeChannels = Array.isArray(channels) ? channels : [];
+    console.log("BusinessServers: Render - safeBusinessData", safeBusinessData);
+    console.log("BusinessServers: Render - safeChannels", safeChannels);
+
     return (
         <div className="w-16 bg-muted/30 flex flex-col items-center py-3 border-r ">
         <ScrollArea className="flex-1 w-full">
             <div className="flex flex-col items-center space-y-2 px-2">
-                {businessData.map((business, idx) => {
-                    const firstChannelForBusiness = channelData.find(channel => channel.businessId === business.id);
+                {safeBusinessData.map((business, idx) => {
+                    console.log("BusinessServers: Mapping business", business);
+                    // Ensure business.id is defined before using it in find
+                    const firstChannelForBusiness = business.id ? safeChannels.find(channel => {
+                        console.log(`BusinessServers: Looking for channel with businessId ${business.id} in channel`, channel);
+                        return channel.businessId === business.id;
+                    }) : undefined;
+                    console.log(`BusinessServers: firstChannelForBusiness for ${business.id}`, firstChannelForBusiness);
                     return (
                         <Tooltip key={business.id || idx}>
                             <TooltipTrigger asChild>
@@ -97,11 +112,10 @@ export default function BusinessServers({ businessData, selectedBusiness, setSel
                                         }`}
                                     onClick={() => {
                                         setSelectedBusiness(business.id)
-                                        setSelectedChannel(firstChannelForBusiness ? firstChannelForBusiness._id : null)
                                     }}
                                 >
                                     <Avatar className="w-8 h-8">
-                                        <AvatarImage src={business.avatar ? `/image/${business.avatar}.png` : "/placeholder.svg"} />
+                                        <AvatarImage src={business.avatar || "/placeholder.svg"} />
                                         <AvatarFallback>{business.name.charAt(0).toUpperCase()}</AvatarFallback>
                                     </Avatar>
                                 </Button>

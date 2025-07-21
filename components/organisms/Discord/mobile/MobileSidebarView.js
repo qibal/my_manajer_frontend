@@ -15,16 +15,29 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import Link from 'next/link';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/Shadcn/collapsible";
 import UserProfileCard from "@/components/organisms/Discord/userProfileCard"
-import { businesses, channels, getChannelIcon } from "@/discord_data_dummy/discordData";
+import businessData from "@/discord_data_dummy/businesses.json";
+import channelData from "@/discord_data_dummy/channels.json";
+import { useRouter } from 'next/navigation';
 
-export default function MobileSidebarView({ selectedBusiness, setSelectedBusiness, selectedChannel, setSelectedChannel, groupedChannels }) {
+// Mendefinisikan ulang getChannelIcon di sini (sama seperti di ChannelSidebar.js)
+import { getChannelIcon } from "@/lib/utils";
+
+export default function MobileBusinessServers({ selectedBusiness, setSelectedBusiness, selectedChannel, setSelectedChannel, groupedChannels, businessData, channels, setShowChannelView }) {
+    const router = useRouter();
+
+    const handleBusinessClick = (businessId) => {
+        setSelectedBusiness(businessId); // This prop will trigger the layout to handle routing
+        // The layout will now handle redirection to the first channel of the business
+    };
+
     return (
         <div className="flex h-screen bg-background ">
                 {/* Left Sidebar - Business Servers */}
                 <div className="w-16 bg-muted/30 flex flex-col items-center py-3 border-r">
                     <ScrollArea className="flex-1 w-full">
                         <div className="flex flex-col items-center space-y-2 px-2">
-                            {businesses.map((business) => (
+                            {Array.isArray(businessData) && businessData.map((business) => {
+                                return (
                                 <Tooltip key={business.id}>
                                     <TooltipTrigger asChild>
                                         <Button
@@ -32,14 +45,11 @@ export default function MobileSidebarView({ selectedBusiness, setSelectedBusines
                                             size="icon"
                                             className={`w-12 h-12 rounded-2xl transition-all duration-200 ${selectedBusiness === business.id ? "rounded-xl" : "hover:rounded-xl"
                                                 }`}
-                                            onClick={() => {
-                                                setSelectedBusiness(business.id)
-                                                setSelectedChannel(channels[business.id]?.[0]?.id || 1)
-                                            }}
+                                            onClick={() => handleBusinessClick(business.id)}
                                         >
                                             <Avatar className="w-8 h-8">
                                                 <AvatarImage src={business.avatar || "/placeholder.svg"} />
-                                                <AvatarFallback className={business.color}>{business.initials}</AvatarFallback>
+                                                <AvatarFallback>{business.name.charAt(0).toUpperCase()}</AvatarFallback>
                                             </Avatar>
                                         </Button>
                                     </TooltipTrigger>
@@ -47,7 +57,8 @@ export default function MobileSidebarView({ selectedBusiness, setSelectedBusines
                                         <p>{business.name}</p>
                                     </TooltipContent>
                                 </Tooltip>
-                            ))}
+                            );
+                        })}
                         </div>
                     </ScrollArea>
 
@@ -58,7 +69,7 @@ export default function MobileSidebarView({ selectedBusiness, setSelectedBusines
                 <div className="flex-1 bg-muted/20 flex flex-col">
                     {/* Business Header */}
                     <div className="p-4 border-b">
-                        <h2 className="font-semibold text-lg">{businesses.find((b) => b.id === selectedBusiness)?.name}</h2>
+                        <h2 className="font-semibold text-lg">{selectedBusiness ? (Array.isArray(businessData) && businessData.length > 0 ? businessData.find((b) => b.id === selectedBusiness)?.name : "Pilih Bisnis") : "Pilih Bisnis"}</h2>
                     </div>
 
                     {/* Search */}
@@ -89,30 +100,32 @@ export default function MobileSidebarView({ selectedBusiness, setSelectedBusines
                                     <CollapsibleContent className="space-y-0.5 pl-2">
                                         {channelsInCategory.map((channel) => {
                                             const Icon = getChannelIcon(channel.type);
-                                            const isActive = selectedChannel === channel.id;
+                                            const isActive = selectedChannel === channel.id; // Still use selectedChannel prop for isActive
                                             return (
-                                                <div
+                                                <Link
                                                     key={channel.id}
+                                                    href={`/${selectedBusiness}/${channel.id}`}
+                                                    passHref
+                                                    onClick={() => setShowChannelView(true)}
                                                     className={`group w-full flex justify-start items-center p-1.5 rounded-md cursor-pointer ${
                                                         isActive
                                                             ? "bg-accent text-accent-foreground"
                                                             : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                                                     }`}
-                                                    onClick={() => setSelectedChannel(channel.id)}
                                                 >
                                                     <Icon className="w-5 h-5 mx-1" />
                                                     <span className="truncate flex-1 text-left font-medium text-sm">{channel.name}</span>
                                                     <div className={`flex items-center ${isActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
                                                         <Tooltip disableHoverableContent={true}>
                                                             <TooltipTrigger asChild>
-                                                                <Link href={`/discord/settings/channel/${channel.id}`} passHref>
+                                                                <Link href={`/${selectedBusiness}/settings/channel/${channel.id}`} passHref> {/* Updated Link path */}
                                                                     <Button variant="ghost" size="icon" className="h-6 w-6"><Cog className="h-4 w-4" /></Button>
                                                                 </Link>
                                                             </TooltipTrigger>
                                                             <TooltipContent side="top" className="p-1.5 text-xs"><p>Edit Channel</p></TooltipContent>
                                                         </Tooltip>
                                                     </div>
-                                                </div>
+                                                </Link>
                                             );
                                         })}
                                     </CollapsibleContent>

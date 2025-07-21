@@ -1,6 +1,6 @@
 // Chat Channel Component
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import {
     Pin,
     Send,
@@ -31,21 +31,113 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/Shadcn/ta
 import { ContextMenu, ContextMenuTrigger, ContextMenuContent, ContextMenuItem, ContextMenuSeparator } from "@/components/Shadcn/context-menu"
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@/components/Shadcn/dropdown-menu"
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/Shadcn/popover"
-import { chatMessages, currentUser } from "@/discord_data_dummy/discordData";
+import { currentUser } from "@/discord_data_dummy/discordData";
+// import messagesData from "@/discord_data_dummy/messages.json"; // Hapus import dummy data
 import { formatTime, formatDate } from "@/lib/utils";
 import ReadReceipt from "@/components/atoms/ReadReceipt";
 import Link from 'next/link';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/Shadcn/collapsible";
 import ExcalidrawWrapper from '@/components/Excalidraw/excalidraw';
-// Updated mock chat messages with new fields
+import createWebSocketService from "@/service/messages_webhook";
 
 export default function ChatChannel({ channel }) {
     const [message, setMessage] = useState("")
+    const [messages, setMessages] = useState([]); // State untuk pesan dari WebSocket
+    const wsService = useRef(null);
+    const scrollAreaRef = useRef(null);
+
     const [showPinned, setShowPinned] = useState(true);
     const [pinnedIndex, setPinnedIndex] = useState(0);
-    let lastMessageDate = null;
 
-    const pinnedMessages = chatMessages.filter(msg => msg.pinned);
+    // Filter pinned messages from the WebSocket messages
+    const pinnedMessages = messages.filter(msg => msg.IsPinned); // Gunakan IsPinned sesuai struktur backend
+
+    useEffect(() => {
+        if (!channel || !channel.id) {
+            console.log("ChatChannel: No channel or channel ID available.");
+            setMessages([]); // Clear messages if no channel selected
+            if (wsService.current) {
+                wsService.current.disconnect();
+                wsService.current = null;
+            }
+            return;
+        }
+
+        console.log(`ChatChannel: Setting up WebSocket for channel: ${channel.id}`);
+
+        // Callback untuk menerima pesan dari WebSocket service
+        const onMessageReceived = (data) => {
+            console.log("ChatChannel: Received message from WebSocket:", data);
+            switch (data.type) {
+                case 'message_history':
+                    // Pastikan payload.reverse() untuk urutan terbaru di bawah
+                    setMessages(data.payload.sort((a, b) => new Date(a.CreatedAt) - new Date(b.CreatedAt)));
+                    break;
+                case 'new_message':
+                    setMessages((prevMessages) => {
+                        // Hindari duplikasi jika pesan sudah ada (misal dari echo server)
+                        if (!prevMessages.some(msg => msg.ID === data.payload.ID)) {
+                            return [...prevMessages, data.payload];
+                        }
+                        return prevMessages;
+                    });
+                    break;
+                case 'message_updated':
+                    setMessages((prevMessages) =>
+                        prevMessages.map((msg) =>
+                            msg.ID === data.payload.ID ? data.payload : msg
+                        )
+                    );
+                    break;
+                case 'message_deleted':
+                    setMessages((prevMessages) =>
+                        prevMessages.filter((msg) => msg.ID !== data.payload.id)
+                    );
+                    break;
+                case 'reaction_added':
+                case 'reaction_removed':
+                    setMessages((prevMessages) =>
+                        prevMessages.map((msg) =>
+                            msg.ID === data.payload.ID ? data.payload : msg
+                        )
+                    );
+                    break;
+                case 'error':
+                    console.error('ChatChannel: WebSocket Error:', data.payload);
+                    break;
+                default:
+                    console.log('ChatChannel: Unhandled message type:', data.type, data.payload);
+            }
+        };
+
+        // Disconnect existing service if channel changes or component unmounts
+        if (wsService.current) {
+            wsService.current.disconnect();
+        }
+
+        // Create new WebSocket service instance
+        wsService.current = createWebSocketService(channel.id, onMessageReceived);
+        wsService.current.connect();
+
+        // Cleanup on unmount
+        return () => {
+            if (wsService.current) {
+                wsService.current.disconnect();
+                wsService.current = null;
+            }
+            setMessages([]); // Clear messages when channel changes/unmounts
+        };
+    }, [channel?.id]); // Re-run effect when channel ID changes
+
+    // Auto-scroll to bottom on new messages
+    useEffect(() => {
+        if (scrollAreaRef.current) {
+            const viewport = scrollAreaRef.current.viewport;
+            if (viewport) {
+                viewport.scrollTop = viewport.scrollHeight;
+            }
+        }
+    }, [messages]);
 
     const scrollToMessage = (messageId) => {
         const messageEl = document.getElementById(`message-${messageId}`);
@@ -63,12 +155,10 @@ export default function ChatChannel({ channel }) {
 
     useEffect(() => {
         if (showPinned && pinnedMessages.length > 0) {
-            const messageId = pinnedMessages[pinnedIndex].id;
-            // We don't auto-scroll on first load, only on navigation.
-            // But for this demo, we can scroll on index change.
+            const messageId = pinnedMessages[pinnedIndex].ID; // Gunakan ID sesuai struktur backend
             scrollToMessage(messageId);
         }
-    }, [pinnedIndex]);
+    }, [pinnedIndex, showPinned, pinnedMessages]); // Add pinnedMessages to dependency array
 
     const handleNextPinned = () => {
         setPinnedIndex((prevIndex) => (prevIndex + 1) % pinnedMessages.length);
@@ -76,6 +166,29 @@ export default function ChatChannel({ channel }) {
 
     const handlePrevPinned = () => {
         setPinnedIndex((prevIndex) => (prevIndex - 1 + pinnedMessages.length) % pinnedMessages.length);
+    };
+
+    const handleSendMessage = () => {
+        if (message.trim() && wsService.current) {
+            const messagePayload = {
+                userID: currentUser.id, // Gunakan ID user yang sebenarnya
+                content: message,
+                messageType: 'text',
+                channelId: channel.id,
+            };
+            wsService.current.sendMessage({ type: 'client_message', payload: messagePayload });
+            setMessage('');
+        } else {
+            console.warn("ChatChannel: Cannot send message. WebSocket service not ready or message is empty.");
+        }
+    };
+
+    // Tangani kirim pesan saat Enter ditekan
+    const handleKeyDown = (event) => {
+        if (event.key === 'Enter' && !event.shiftKey) {
+            event.preventDefault(); // Mencegah newline di input
+            handleSendMessage();
+        }
     };
 
     const currentUserName = currentUser.name;
@@ -87,10 +200,10 @@ export default function ChatChannel({ channel }) {
                     <Pin className="w-4 h-4 mr-3 text-yellow-500" />
                     <div
                         className="flex-1 min-w-0 cursor-pointer"
-                        onClick={() => scrollToMessage(pinnedMessages[pinnedIndex].id)}
+                        onClick={() => scrollToMessage(pinnedMessages[pinnedIndex].ID)} // Gunakan ID
                     >
-                        <span className="font-semibold">{pinnedMessages[pinnedIndex].user}: </span>
-                        <span className="text-muted-foreground truncate">{pinnedMessages[pinnedIndex].message}</span>
+                        <span className="font-semibold">{pinnedMessages[pinnedIndex].User}: </span>
+                        <span className="text-muted-foreground truncate">{pinnedMessages[pinnedIndex].Content}</span>
                     </div>
                     <div className="flex items-center ml-4">
                         <span className="text-xs text-muted-foreground">{pinnedIndex + 1} of {pinnedMessages.length}</span>
@@ -100,147 +213,159 @@ export default function ChatChannel({ channel }) {
                         <Button variant="ghost" size="icon" className="w-6 h-6" onClick={handleNextPinned} disabled={pinnedMessages.length <= 1}>
                             <ChevronRight className="w-4 h-4" />
                         </Button>
-                        {/* <Button variant="ghost" size="icon" className="w-6 h-6 ml-2" onClick={() => setShowPinned(false)}>
-                            <X className="w-4 h-4" />
-                        </Button> */}
                     </div>
                 </div>
             )}
             <div className="flex-1 overflow-hidden">
-                <ScrollArea className="h-full p-4">
+                <ScrollArea className="h-full p-4" viewportRef={scrollAreaRef}> {/* Tambahkan ref di sini */}
                     <div className="space-y-2">
-                        {chatMessages.map((msg) => {
-                            const currentMessageDate = formatDate(msg.timestamp);
-                            const showDateSeparator = currentMessageDate !== lastMessageDate;
-                            lastMessageDate = currentMessageDate;
+                        {messages.length === 0 && !channel?.id ? (
+                            <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground">
+                                <p>Silakan pilih channel untuk memulai percakapan.</p>
+                            </div>
+                        ) : messages.length === 0 && channel?.id ? (
+                            <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground">
+                                <p>Tidak ada pesan di channel ini. Mari mulai percakapan!</p>
+                            </div>
+                        ) : (
+                            messages.map((msg, index) => {
+                                const currentMessageDate = formatDate(msg.CreatedAt);
+                                // Bandingkan dengan pesan sebelumnya (jika ada)
+                                const prevMessageDate = index > 0 ? formatDate(messages[index - 1].CreatedAt) : null;
+                                const showDateSeparator = currentMessageDate !== prevMessageDate;
 
-                            return (
-                                <div key={msg.id} id={`message-${msg.id}`}>
-                                    {showDateSeparator && (
-                                        <div className="relative my-4">
-                                            <div className="absolute inset-0 flex items-center" aria-hidden="true">
-                                                <div className="w-full border-t border-border" />
-                                            </div>
-                                            <div className="relative flex justify-center">
-                                                <span className="bg-background px-2 text-xs text-muted-foreground">{currentMessageDate}</span>
-                                            </div>
-                                        </div>
-                                    )}
-                                    <ContextMenu>
-                                        <ContextMenuTrigger asChild>
-                                            <div className={`flex items-start space-x-3 cursor-pointer select-text group ${msg.user === currentUserName ? 'justify-end' : ''}`}>
-                                                {msg.user !== currentUserName && (
-                                                    <Avatar className="w-8 h-8">
-                                                        <AvatarImage src={msg.avatar || "/placeholder.svg"} />
-                                                        <AvatarFallback>{msg.user.split(" ").map((n) => n[0]).join("")}</AvatarFallback>
-                                                    </Avatar>
-                                                )}
-                                                <div className={`flex flex-col max-w-[75%] ${msg.user === currentUserName ? 'items-end' : 'items-start'}`}>
-                                                    <div
-                                                        className={`message-bubble relative rounded-2xl px-3 py-2 transition-colors border group-hover:bg-accent/40
-                                                            ${msg.user === currentUserName ? 'bg-white border-blue-200 text-black' : 'bg-muted border-muted text-foreground'}`}
-                                                    >
-                                                        <div className="absolute -top-3 right-2 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                                                            <HoverCard openDelay={0} closeDelay={0}><HoverCardTrigger asChild><Button variant="outline" size="icon" className="w-7 h-7 rounded-full"><Flame className="w-4 h-4 text-orange-500" /></Button></HoverCardTrigger><HoverCardContent side="top" className="px-2 py-1 text-xs">React: Fire</HoverCardContent></HoverCard>
-                                                            <HoverCard openDelay={0} closeDelay={0}><HoverCardTrigger asChild><Button variant="outline" size="icon" className="w-7 h-7 rounded-full"><Heart className="w-4 h-4 text-rose-500" /></Button></HoverCardTrigger><HoverCardContent side="top" className="px-2 py-1 text-xs">React: Love</HoverCardContent></HoverCard>
-                                                            <HoverCard openDelay={0} closeDelay={0}><HoverCardTrigger asChild><Button variant="outline" size="icon" className="w-7 h-7 rounded-full"><ThumbsUp className="w-4 h-4 text-yellow-500" /></Button></HoverCardTrigger><HoverCardContent side="top" className="px-2 py-1 text-xs">React: Like</HoverCardContent></HoverCard>
-                                                            <HoverCard openDelay={0} closeDelay={0}><HoverCardTrigger asChild><Button variant="outline" size="icon" className="w-7 h-7 rounded-full"><Reply className="w-4 h-4" /></Button></HoverCardTrigger><HoverCardContent side="top" className="px-2 py-1 text-xs">Reply</HoverCardContent></HoverCard>
-                                                            <HoverCard openDelay={0} closeDelay={0}><HoverCardTrigger asChild><Button variant="outline" size="icon" className="w-7 h-7 rounded-full"><Forward className="w-4 h-4" /></Button></HoverCardTrigger><HoverCardContent side="top" className="px-2 py-1 text-xs">Forward</HoverCardContent></HoverCard>
-                                                            <DropdownMenu>
-                                                                <HoverCard openDelay={0} closeDelay={0}>
-                                                                    <HoverCardTrigger asChild>
-                                                                        <DropdownMenuTrigger asChild>
-                                                                            <Button variant="outline" size="icon" className="w-7 h-7 rounded-full">
-                                                                                <MoreVertical className="w-4 h-4" />
-                                                                            </Button>
-                                                                        </DropdownMenuTrigger>
-                                                                    </HoverCardTrigger>
-                                                                    <HoverCardContent side="top" className="px-2 py-1 text-xs">More</HoverCardContent>
-                                                                </HoverCard>
-                                                                <DropdownMenuContent align="end" sideOffset={4} className="w-40">
-                                                                    <DropdownMenuItem onClick={() => {/* pin logic */ }}>
-                                                                        <Pin className="w-4 h-4 mr-2" /> Pin
-                                                                    </DropdownMenuItem>
-                                                                    <DropdownMenuItem onClick={() => { navigator.clipboard.writeText(msg.message) }}>
-                                                                        <Copy className="w-4 h-4 mr-2" /> Copy Text
-                                                                    </DropdownMenuItem>
-                                                                    <DropdownMenuSeparator />
-                                                                    <DropdownMenuItem onClick={() => {/* edit logic */ }}>
-                                                                        <Pencil className="w-4 h-4 mr-2" /> Edit
-                                                                    </DropdownMenuItem>
-                                                                    <DropdownMenuItem className="text-rose-600 focus:bg-rose-100" onClick={() => {/* delete logic */ }}>
-                                                                        <Trash2 className="w-4 h-4 mr-2 text-rose-600" /> Delete
-                                                                    </DropdownMenuItem>
-                                                                </DropdownMenuContent>
-                                                            </DropdownMenu>
-                                                        </div>
+                                // Menyesuaikan avatar dan fallback dari currentUser jika pesan dari user tersebut
+                                // Menggunakan data dari msg.UserID dan User (sesuai backend)
+                                const messageSenderAvatar = msg.UserID === currentUser.id ? currentUser.avatar : `https://i.pravatar.cc/150?u=${msg.UserID}`;
+                                const messageSenderName = msg.UserID === currentUser.id ? currentUser.name : msg.User;
 
-                                                        <div className="flex items-center space-x-2">
-                                                            {msg.user !== currentUserName && <span className="font-semibold text-sm text-blue-500 ">{msg.user}</span>}
-                                                            <span className="text-xs text-muted-foreground">{formatTime(msg.timestamp)}</span>
-                                                            {msg.edited && <span className="text-xs text-muted-foreground">(edited)</span>}
-                                                            {msg.user === currentUserName && <ReadReceipt status={msg.readStatus} />}
+                                return (
+                                    <div key={msg.ID} id={`message-${msg.ID}`}> {/* Gunakan ID */}
+                                        {showDateSeparator && (
+                                            <div className="relative my-4">
+                                                <div className="absolute inset-0 flex items-center" aria-hidden="true">
+                                                    <div className="w-full border-t border-border" />
+                                                </div>
+                                                <div className="relative flex justify-center">
+                                                    <span className="bg-background px-2 text-xs text-muted-foreground">{currentMessageDate}</span>
+                                                </div>
+                                            </div>
+                                        )}
+                                        <ContextMenu>
+                                            <ContextMenuTrigger asChild>
+                                                <div className={`flex items-start space-x-3 cursor-pointer select-text group ${msg.UserID === currentUser.id ? 'justify-end' : ''}`}> {/* Gunakan UserID */}
+                                                    {msg.UserID !== currentUser.id && (
+                                                        <Avatar className="w-8 h-8">
+                                                            <AvatarImage src={messageSenderAvatar} />
+                                                            <AvatarFallback>{messageSenderName.split(" ").map((n) => n[0]).join("")}</AvatarFallback>
+                                                        </Avatar>
+                                                    )}
+                                                    <div className={`flex flex-col max-w-[75%] ${msg.UserID === currentUser.id ? 'items-end' : 'items-start'}`}> {/* Gunakan UserID */}
+                                                        <div
+                                                            className={`message-bubble relative rounded-2xl px-3 py-2 transition-colors border group-hover:bg-accent/40
+                                                            ${msg.UserID === currentUser.id ? 'bg-white border-blue-200 text-black' : 'bg-muted border-muted text-foreground'}`} /* Gunakan UserID */
+                                                        >
+                                                            <div className="absolute -top-3 right-2 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                                                                <HoverCard openDelay={0} closeDelay={0}><HoverCardTrigger asChild><Button variant="outline" size="icon" className="w-7 h-7 rounded-full"><Flame className="w-4 h-4 text-orange-500" /></Button></HoverCardTrigger><HoverCardContent side="top" className="px-2 py-1 text-xs">React: Fire</HoverCardContent></HoverCard>
+                                                                <HoverCard openDelay={0} closeDelay={0}><HoverCardTrigger asChild><Button variant="outline" size="icon" className="w-7 h-7 rounded-full"><Heart className="w-4 h-4 text-rose-500" /></Button></HoverCardTrigger><HoverCardContent side="top" className="px-2 py-1 text-xs">React: Love</HoverCardContent></HoverCard>
+                                                                <HoverCard openDelay={0} closeDelay={0}><HoverCardTrigger asChild><Button variant="outline" size="icon" className="w-7 h-7 rounded-full"><ThumbsUp className="w-4 h-4 text-yellow-500" /></Button></HoverCardTrigger><HoverCardContent side="top" className="px-2 py-1 text-xs">React: Like</HoverCardContent></HoverCard>
+                                                                <HoverCard openDelay={0} closeDelay={0}><HoverCardTrigger asChild><Button variant="outline" size="icon" className="w-7 h-7 rounded-full"><Reply className="w-4 h-4" /></Button></HoverCardTrigger><HoverCardContent side="top" className="px-2 py-1 text-xs">Reply</HoverCardContent></HoverCard>
+                                                                <HoverCard openDelay={0} closeDelay={0}><HoverCardTrigger asChild><Button variant="outline" size="icon" className="w-7 h-7 rounded-full"><Forward className="w-4 h-4" /></Button></HoverCardTrigger><HoverCardContent side="top" className="px-2 py-1 text-xs">Forward</HoverCardContent></HoverCard>
+                                                                <DropdownMenu>
+                                                                    <HoverCard openDelay={0} closeDelay={0}>
+                                                                        <HoverCardTrigger asChild>
+                                                                            <DropdownMenuTrigger asChild>
+                                                                                <Button variant="outline" size="icon" className="w-7 h-7 rounded-full">
+                                                                                    <MoreVertical className="w-4 h-4" />
+                                                                                </Button>
+                                                                            </DropdownMenuTrigger>
+                                                                        </HoverCardTrigger>
+                                                                        <HoverCardContent side="top" className="px-2 py-1 text-xs">More</HoverCardContent>
+                                                                    </HoverCard>
+                                                                    <DropdownMenuContent align="end" sideOffset={4} className="w-40">
+                                                                        <DropdownMenuItem onClick={() => {/* pin logic */ }}>
+                                                                            <Pin className="w-4 h-4 mr-2" /> Pin
+                                                                        </DropdownMenuItem>
+                                                                        <DropdownMenuItem onClick={() => { navigator.clipboard.writeText(msg.Content) }}> {/* Gunakan Content */}
+                                                                            <Copy className="w-4 h-4 mr-2" /> Copy Text
+                                                                        </DropdownMenuItem>
+                                                                        <DropdownMenuSeparator />
+                                                                        <DropdownMenuItem onClick={() => {/* edit logic */ }}>
+                                                                            <Pencil className="w-4 h-4 mr-2" /> Edit
+                                                                        </DropdownMenuItem>
+                                                                        <DropdownMenuItem className="text-rose-600 focus:bg-rose-100" onClick={() => {/* delete logic */ }}>
+                                                                            <Trash2 className="w-4 h-4 mr-2 text-rose-600" /> Delete
+                                                                        </DropdownMenuItem>
+                                                                    </DropdownMenuContent>
+                                                                </DropdownMenu>
+                                                            </div>
+
+                                                            <div className="flex items-center space-x-2">
+                                                                {msg.UserID !== currentUser.id && <span className="font-semibold text-sm text-blue-500 ">{msg.User}</span>} {/* Gunakan User dan UserID */}
+                                                                <span className="text-xs text-muted-foreground">{formatTime(msg.CreatedAt)}</span> {/* Gunakan CreatedAt */}
+                                                                {msg.UpdatedAt && <span className="text-xs text-muted-foreground">(edited)</span>} {/* Gunakan UpdatedAt */}
+                                                                {msg.UserID === currentUser.id && <ReadReceipt status={msg.ReadStatus || null} />} {/* Gunakan UserID dan ReadStatus */}
+                                                            </div>
+                                                            <p className="text-sm mt-1 break-words">{msg.Content}</p> {/* Gunakan Content */}
                                                         </div>
-                                                        <p className="text-sm mt-1 break-words">{msg.message}</p>
+                                                        {msg.Reactions && msg.Reactions.length > 0 && (
+                                                            <div className="flex gap-1 mt-1 p-1">
+                                                                {msg.Reactions.map(reaction => (
+                                                                    <button key={reaction.Emoji} className="flex items-center gap-1.5 text-xs rounded-full bg-background/80 hover:bg-muted border px-2 py-0.5">
+                                                                        <span>{reaction.Emoji}</span>
+                                                                        <span className="font-semibold">{reaction.UserIDs.length}</span> {/* Gunakan UserIDs */}
+                                                                    </button>
+                                                                ))}
+                                                                <Popover>
+                                                                    <PopoverTrigger asChild>
+                                                                        <button className="flex items-center justify-center w-6 h-6 text-xs rounded-full bg-background/80 hover:bg-muted border"><SmilePlus className="w-3.5 h-3.5" /></button>
+                                                                    </PopoverTrigger>
+                                                                    <PopoverContent className="w-auto p-0">
+                                                                        <div className="grid grid-cols-5 gap-1 p-2">
+                                                                            {["😀", "😂", "😍", "😎", "😢", "👍", "❤️", "😯", "😢", "🙏"].map(emj => (
+                                                                                <button key={emj} className="text-xl hover:bg-muted rounded p-1">{emj}</button>
+                                                                            ))}
+                                                                        </div>
+                                                                    </PopoverContent>
+                                                                </Popover>
+                                                            </div>
+                                                        )}
                                                     </div>
-                                                    {msg.reactions && msg.reactions.length > 0 && (
-                                                        <div className="flex gap-1 mt-1 p-1">
-                                                            {msg.reactions.map(reaction => (
-                                                                <button key={reaction.emoji} className="flex items-center gap-1.5 text-xs rounded-full bg-background/80 hover:bg-muted border px-2 py-0.5">
-                                                                    <span>{reaction.emoji}</span>
-                                                                    <span className="font-semibold">{reaction.count}</span>
-                                                                </button>
-                                                            ))}
-                                                            <Popover>
-                                                                <PopoverTrigger asChild>
-                                                                    <button className="flex items-center justify-center w-6 h-6 text-xs rounded-full bg-background/80 hover:bg-muted border"><SmilePlus className="w-3.5 h-3.5" /></button>
-                                                                </PopoverTrigger>
-                                                                <PopoverContent className="w-auto p-0">
-                                                                    <div className="grid grid-cols-5 gap-1 p-2">
-                                                                        {["😀", "😂", "😍", "😎", "😢", "👍", "❤️", "😯", "😢", "🙏"].map(emj => (
-                                                                            <button key={emj} className="text-xl hover:bg-muted rounded p-1">{emj}</button>
-                                                                        ))}
-                                                                    </div>
-                                                                </PopoverContent>
-                                                            </Popover>
-                                                        </div>
+                                                    {msg.UserID === currentUser.id && (
+                                                        <Avatar className="w-8 h-8">
+                                                            <AvatarImage src={currentUser.avatar} />
+                                                            <AvatarFallback>{currentUser.name.split(" ").map((n) => n[0]).join("")}</AvatarFallback>
+                                                        </Avatar>
                                                     )}
                                                 </div>
-                                                {msg.user === currentUserName && (
-                                                    <Avatar className="w-8 h-8">
-                                                        <AvatarImage src={currentUser.avatar} />
-                                                        <AvatarFallback>{currentUser.name.split(" ").map((n) => n[0]).join("")}</AvatarFallback>
-                                                    </Avatar>
-                                                )}
-                                            </div>
-                                        </ContextMenuTrigger>
-                                        <ContextMenuContent>
-                                            <ContextMenuItem onClick={() => {/* reply logic */ }}>
-                                                <Reply className="w-4 h-4 mr-2" /> Reply
-                                            </ContextMenuItem>
-                                            <ContextMenuItem onClick={() => {/* forward logic */ }}>
-                                                <Forward className="w-4 h-4 mr-2" /> Forward
-                                            </ContextMenuItem>
-                                            <ContextMenuSeparator />
-                                            <ContextMenuItem onClick={() => {/* pin logic */ }}>
-                                                <Pin className="w-4 h-4 mr-2" /> Pin
-                                            </ContextMenuItem>
-                                            <ContextMenuItem onClick={() => { navigator.clipboard.writeText(msg.message) }}>
-                                                <Copy className="w-4 h-4 mr-2" /> Copy Text
-                                            </ContextMenuItem>
-                                            <ContextMenuSeparator />
-                                            <ContextMenuItem onClick={() => {/* edit logic */ }}>
-                                                <Pencil className="w-4 h-4 mr-2" /> Edit
-                                            </ContextMenuItem>
-                                            <ContextMenuItem className="text-rose-600 focus:bg-rose-100" onClick={() => {/* delete logic */ }}>
-                                                <Trash2 className="w-4 h-4 mr-2 text-rose-600" /> Delete
-                                            </ContextMenuItem>
-                                        </ContextMenuContent>
-                                    </ContextMenu>
-                                </div>
-                            )
-                        })}
-                    </div>
+                                            </ContextMenuTrigger>
+                                            <ContextMenuContent>
+                                                <ContextMenuItem onClick={() => {/* reply logic */ }}>
+                                                    <Reply className="w-4 h-4 mr-2" /> Reply
+                                                </ContextMenuItem>
+                                                <ContextMenuItem onClick={() => {/* forward logic */ }}>
+                                                    <Forward className="w-4 h-4 mr-2" /> Forward
+                                                </ContextMenuItem>
+                                                <ContextMenuSeparator />
+                                                <ContextMenuItem onClick={() => {/* pin logic */ }}>
+                                                    <Pin className="w-4 h-4 mr-2" /> Pin
+                                                </ContextMenuItem>
+                                                <ContextMenuItem onClick={() => { navigator.clipboard.writeText(msg.Content) }}> {/* Gunakan Content */}
+                                                    <Copy className="w-4 h-4 mr-2" /> Copy Text
+                                                </ContextMenuItem>
+                                                <ContextMenuSeparator />
+                                                <ContextMenuItem onClick={() => {/* edit logic */ }}>
+                                                    <Pencil className="w-4 h-4 mr-2" /> Edit
+                                                </ContextMenuItem>
+                                                <ContextMenuItem className="text-rose-600 focus:bg-rose-100" onClick={() => {/* delete logic */ }}>
+                                                    <Trash2 className="w-4 h-4 mr-2 text-rose-600" /> Delete
+                                                </ContextMenuItem>
+                                            </ContextMenuContent>
+                                        </ContextMenu>
+                                    </div>
+                                )
+                            }))}
+                    </ div >
                 </ScrollArea>
             </div>
 
@@ -269,6 +394,7 @@ export default function ChatChannel({ channel }) {
                             placeholder={`Message #${channel.name}`}
                             value={message}
                             onChange={(e) => setMessage(e.target.value)}
+                            onKeyDown={handleKeyDown} // Tambahkan handler onKeyDown
                             className="pr-20"
                         />
                         <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center space-x-1">
@@ -319,7 +445,7 @@ export default function ChatChannel({ channel }) {
                                     </Tabs>
                                 </HoverCardContent>
                             </HoverCard>
-                            <Button variant="ghost" size="icon" className="w-6 h-6">
+                            <Button variant="ghost" size="icon" className="w-6 h-6" onClick={handleSendMessage}> {/* Tambahkan onClick */}
                                 <Send className="w-4 h-4" />
                             </Button>
                         </div>
