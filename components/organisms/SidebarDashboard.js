@@ -207,7 +207,7 @@ export function SidebarDashboard({ children }) {
       <Sidebar collapsible="icon" variant="inset">
         <SidebarContentComponent />
       </Sidebar>
-      <SidebarInset className="min-h-svh">
+      <SidebarInset className="h-svh">
         <div className="p-4">
           <SidebarTrigger />
         </div>

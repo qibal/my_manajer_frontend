@@ -159,6 +159,7 @@ export const chatMessages = [
 ];
 
 export const currentUser = {
+    id: "687e41221689f236c8d826e9", // Tambahkan ID pengguna yang valid (contoh)
     name: "Iqbal",
     email: "iqbal@example.com",
     avatar: "https://github.com/shadcn.png",

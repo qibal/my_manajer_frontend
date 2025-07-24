@@ -40,7 +40,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import ExcalidrawWrapper from '@/components/Excalidraw/excalidraw';
 import createWebSocketService from "@/service/messages_webhook";
 
-export default function ChatChannel({ channel }) {
+export default function ChatChannel({ channel, onSyncStatusChange, syncCounter }) {
     const [message, setMessage] = useState("")
     const [messages, setMessages] = useState([]); // State untuk pesan dari WebSocket
     const wsService = useRef(null);
@@ -50,7 +50,7 @@ export default function ChatChannel({ channel }) {
     const [pinnedIndex, setPinnedIndex] = useState(0);
 
     // Filter pinned messages from the WebSocket messages
-    const pinnedMessages = messages.filter(msg => msg.IsPinned); // Gunakan IsPinned sesuai struktur backend
+    const pinnedMessages = messages.filter(msg => msg.isPinned); // Gunakan isPinned sesuai struktur backend
 
     useEffect(() => {
         if (!channel || !channel.id) {
@@ -71,7 +71,8 @@ export default function ChatChannel({ channel }) {
             switch (data.type) {
                 case 'message_history':
                     // Pastikan payload.reverse() untuk urutan terbaru di bawah
-                    setMessages(data.payload.sort((a, b) => new Date(a.CreatedAt) - new Date(b.CreatedAt)));
+                    setMessages(data.payload && Array.isArray(data.payload) ? data.payload.sort((a, b) => new Date(a.CreatedAt) - new Date(b.CreatedAt)) : []);
+                    onSyncStatusChange('synced', new Date()); // Set status synced dan waktu terakhir
                     break;
                 case 'new_message':
                     setMessages((prevMessages) => {
@@ -129,6 +130,13 @@ export default function ChatChannel({ channel }) {
         };
     }, [channel?.id]); // Re-run effect when channel ID changes
 
+    useEffect(() => {
+        if (syncCounter > 0 && wsService.current) {
+            onSyncStatusChange('syncing');
+            wsService.current.sendMessage({ type: 'get_message_history', payload: { limit: 50, skip: 0 } });
+        }
+    }, [syncCounter, wsService.current]); // Tambahkan wsService.current sebagai dependensi
+
     // Auto-scroll to bottom on new messages
     useEffect(() => {
         if (scrollAreaRef.current) {
@@ -155,7 +163,7 @@ export default function ChatChannel({ channel }) {
 
     useEffect(() => {
         if (showPinned && pinnedMessages.length > 0) {
-            const messageId = pinnedMessages[pinnedIndex].ID; // Gunakan ID sesuai struktur backend
+            const messageId = pinnedMessages[pinnedIndex].id; // Gunakan id sesuai struktur backend
             scrollToMessage(messageId);
         }
     }, [pinnedIndex, showPinned, pinnedMessages]); // Add pinnedMessages to dependency array
@@ -200,10 +208,10 @@ export default function ChatChannel({ channel }) {
                     <Pin className="w-4 h-4 mr-3 text-yellow-500" />
                     <div
                         className="flex-1 min-w-0 cursor-pointer"
-                        onClick={() => scrollToMessage(pinnedMessages[pinnedIndex].ID)} // Gunakan ID
+                        onClick={() => scrollToMessage(pinnedMessages[pinnedIndex].id)} // Gunakan ID
                     >
-                        <span className="font-semibold">{pinnedMessages[pinnedIndex].User}: </span>
-                        <span className="text-muted-foreground truncate">{pinnedMessages[pinnedIndex].Content}</span>
+                        <span className="font-semibold">{pinnedMessages[pinnedIndex].User || pinnedMessages[pinnedIndex].userId}: </span>
+                        <span className="text-muted-foreground truncate">{pinnedMessages[pinnedIndex].content}</span>
                     </div>
                     <div className="flex items-center ml-4">
                         <span className="text-xs text-muted-foreground">{pinnedIndex + 1} of {pinnedMessages.length}</span>
@@ -236,8 +244,8 @@ export default function ChatChannel({ channel }) {
 
                                 // Menyesuaikan avatar dan fallback dari currentUser jika pesan dari user tersebut
                                 // Menggunakan data dari msg.UserID dan User (sesuai backend)
-                                const messageSenderAvatar = msg.UserID === currentUser.id ? currentUser.avatar : `https://i.pravatar.cc/150?u=${msg.UserID}`;
-                                const messageSenderName = msg.UserID === currentUser.id ? currentUser.name : msg.User;
+                                const messageSenderAvatar = msg.userId === currentUser.id ? currentUser.avatar : `https://i.pravatar.cc/150?u=${msg.userId}`;
+                                const messageSenderName = msg.userId === currentUser.id ? currentUser.name : (msg.User || msg.userId);
 
                                 return (
                                     <div key={msg.ID} id={`message-${msg.ID}`}> {/* Gunakan ID */}
@@ -253,17 +261,17 @@ export default function ChatChannel({ channel }) {
                                         )}
                                         <ContextMenu>
                                             <ContextMenuTrigger asChild>
-                                                <div className={`flex items-start space-x-3 cursor-pointer select-text group ${msg.UserID === currentUser.id ? 'justify-end' : ''}`}> {/* Gunakan UserID */}
-                                                    {msg.UserID !== currentUser.id && (
+                                                <div className={`flex items-start space-x-3 cursor-pointer select-text group ${msg.userId === currentUser.id ? 'justify-end' : ''}`}> {/* Gunakan userId */}
+                                                    {msg.userId !== currentUser.id && (
                                                         <Avatar className="w-8 h-8">
                                                             <AvatarImage src={messageSenderAvatar} />
                                                             <AvatarFallback>{messageSenderName.split(" ").map((n) => n[0]).join("")}</AvatarFallback>
                                                         </Avatar>
                                                     )}
-                                                    <div className={`flex flex-col max-w-[75%] ${msg.UserID === currentUser.id ? 'items-end' : 'items-start'}`}> {/* Gunakan UserID */}
+                                                    <div className={`flex flex-col max-w-[75%] ${msg.userId === currentUser.id ? 'items-end' : 'items-start'}`}> {/* Gunakan userId */}
                                                         <div
                                                             className={`message-bubble relative rounded-2xl px-3 py-2 transition-colors border group-hover:bg-accent/40
-                                                            ${msg.UserID === currentUser.id ? 'bg-white border-blue-200 text-black' : 'bg-muted border-muted text-foreground'}`} /* Gunakan UserID */
+                                                            ${msg.userId === currentUser.id ? 'bg-white border-blue-200 text-black' : 'bg-muted border-muted text-foreground'}`} /* Gunakan userId */
                                                         >
                                                             <div className="absolute -top-3 right-2 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity z-10">
                                                                 <HoverCard openDelay={0} closeDelay={0}><HoverCardTrigger asChild><Button variant="outline" size="icon" className="w-7 h-7 rounded-full"><Flame className="w-4 h-4 text-orange-500" /></Button></HoverCardTrigger><HoverCardContent side="top" className="px-2 py-1 text-xs">React: Fire</HoverCardContent></HoverCard>
@@ -286,7 +294,7 @@ export default function ChatChannel({ channel }) {
                                                                         <DropdownMenuItem onClick={() => {/* pin logic */ }}>
                                                                             <Pin className="w-4 h-4 mr-2" /> Pin
                                                                         </DropdownMenuItem>
-                                                                        <DropdownMenuItem onClick={() => { navigator.clipboard.writeText(msg.Content) }}> {/* Gunakan Content */}
+                                                                        <DropdownMenuItem onClick={() => { navigator.clipboard.writeText(msg.content) }}> {/* Gunakan content */}
                                                                             <Copy className="w-4 h-4 mr-2" /> Copy Text
                                                                         </DropdownMenuItem>
                                                                         <DropdownMenuSeparator />
@@ -301,10 +309,10 @@ export default function ChatChannel({ channel }) {
                                                             </div>
 
                                                             <div className="flex items-center space-x-2">
-                                                                {msg.UserID !== currentUser.id && <span className="font-semibold text-sm text-blue-500 ">{msg.User}</span>} {/* Gunakan User dan UserID */}
+                                                                {msg.userId !== currentUser.id && <span className="font-semibold text-sm text-blue-500 ">{msg.User || msg.userId}</span>} {/* Gunakan User dan userId */}
                                                                 <span className="text-xs text-muted-foreground">{formatTime(msg.CreatedAt)}</span> {/* Gunakan CreatedAt */}
                                                                 {msg.UpdatedAt && <span className="text-xs text-muted-foreground">(edited)</span>} {/* Gunakan UpdatedAt */}
-                                                                {msg.UserID === currentUser.id && <ReadReceipt status={msg.ReadStatus || null} />} {/* Gunakan UserID dan ReadStatus */}
+                                                                {msg.userId === currentUser.id && <ReadReceipt status={msg.ReadStatus || null} />} {/* Gunakan userId dan ReadStatus */}
                                                             </div>
                                                             <p className="text-sm mt-1 break-words">{msg.Content}</p> {/* Gunakan Content */}
                                                         </div>
@@ -331,7 +339,7 @@ export default function ChatChannel({ channel }) {
                                                             </div>
                                                         )}
                                                     </div>
-                                                    {msg.UserID === currentUser.id && (
+                                                    {msg.userId === currentUser.id && (
                                                         <Avatar className="w-8 h-8">
                                                             <AvatarImage src={currentUser.avatar} />
                                                             <AvatarFallback>{currentUser.name.split(" ").map((n) => n[0]).join("")}</AvatarFallback>

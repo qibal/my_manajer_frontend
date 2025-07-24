@@ -15,7 +15,7 @@ import DatabaseChannel from "@/components/organisms/Discord/DatabaseChannel"
 import ReportChannel from "@/components/organisms/Discord/ReportChannel"
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/Shadcn/resizable"
 
-const renderChannelContent = (channel) => {
+const renderChannelContent = (channel, onSyncStatusChange, syncCounter) => {
   if (!channel) {
     return (
       <div className="flex flex-col h-full items-center justify-center text-muted-foreground">
@@ -25,19 +25,19 @@ const renderChannelContent = (channel) => {
   }
   switch (channel?.type) {
     case "messages":
-      return <ChatChannel channel={channel} />
+      return <ChatChannel channel={channel} onSyncStatusChange={onSyncStatusChange} syncCounter={syncCounter} />;
     case "voices":
-      return <VoiceChannel channel={channel} />
+      return <VoiceChannel channel={channel} />;
     case "drawings":
-      return <DrawChannel channel={channel} />
+      return <DrawChannel channel={channel} />;
     case "documents":
-      return <DocumentChannel channel={channel} />
+      return <DocumentChannel channel={channel} />;
     case "databases":
-      return <DatabaseChannel channel={channel} />
+      return <DatabaseChannel channel={channel} />;
     case "reports":
-      return <ReportChannel channel={channel} />
+      return <ReportChannel channel={channel} />;
     default:
-      return <ChatChannel channel={channel} />
+      return <ChatChannel channel={channel} onSyncStatusChange={onSyncStatusChange} syncCounter={syncCounter} />;
   }
 }
 
@@ -52,6 +52,18 @@ export default function ChannelPage() {
     const [groupedChannels, setGroupedChannels] = useState({});
     const [businessList, setBusinessList] = useState([]);
     const [showChannelView, setShowChannelView] = useState(false);
+    const [syncStatus, setSyncStatus] = useState('idle'); // 'idle', 'syncing', 'synced'
+    const [lastSyncedTime, setLastSyncedTime] = useState(null);
+    const [syncCounter, setSyncCounter] = useState(0);
+
+    const handleSyncStatusChange = (status, time = null) => {
+        setSyncStatus(status);
+        setLastSyncedTime(time);
+    };
+
+    const handleSyncTrigger = () => {
+        setSyncCounter(prev => prev + 1);
+    };
 
     useEffect(() => {
         if (selectedBusinessId) {
@@ -121,6 +133,11 @@ export default function ChannelPage() {
                     groupedChannels={groupedChannels}
                     businessList={businessList}
                     showChannelView={showChannelView}
+                    syncStatus={syncStatus}
+                    lastSyncedTime={lastSyncedTime}
+                    onSyncStatusChange={handleSyncStatusChange}
+                    onTriggerSync={handleSyncTrigger}
+                    syncCounter={syncCounter}
                 />
         )
     }
@@ -139,7 +156,12 @@ export default function ChannelPage() {
         <ResizableHandle />
             <MainContent
                 currentChannel={currentChannel}
-                renderChannelContent={renderChannelContent}
+                renderChannelContent={(channel) => renderChannelContent(channel, handleSyncStatusChange, syncCounter)}
+                syncStatus={syncStatus}
+                lastSyncedTime={lastSyncedTime}
+                onSyncStatusChange={handleSyncStatusChange}
+                onTriggerSync={handleSyncTrigger}
+                syncCounter={syncCounter}
             />
         </ResizablePanelGroup>
     );

@@ -9,6 +9,7 @@
       "format": "mp3",
       "tags": ["door", "slam", "impact", "foley"],
       "upload_date": "2024-01-15",
+      "projectId": 1,
       "business_id": "global"
     },
     {
@@ -20,6 +21,7 @@
       "format": "wav",
       "tags": ["footsteps", "walking", "foley"],
       "upload_date": "2024-01-16",
+      "projectId": 1,
       "business_id": "global"
     },
     {
@@ -31,6 +33,7 @@
       "format": "mp3",
       "tags": ["phone", "ring", "electronic", "notification"],
       "upload_date": "2024-01-17",
+      "projectId": 2,
       "business_id": "global"
     },
     {
@@ -42,6 +45,7 @@
       "format": "wav",
       "tags": ["glass", "break", "shatter", "foley"],
       "upload_date": "2024-01-18",
+      "projectId": 3,
       "business_id": "global"
     },
     {
@@ -53,6 +57,7 @@
       "format": "mp3",
       "tags": ["button", "click", "ui", "interface"],
       "upload_date": "2024-01-19",
+      "projectId": 4,
       "business_id": "global"
     }
   ],
@@ -70,6 +75,7 @@
       "bpm": 120,
       "tags": ["corporate", "uplifting", "business", "background"],
       "upload_date": "2024-01-10",
+      "projectId": 1,
       "business_id": "global",
       "waveform_data": [0.2, 0.4, 0.6, 0.8, 0.9, 0.7, 0.5, 0.3, 0.6, 0.8, 0.9, 0.7, 0.4, 0.2, 0.5, 0.7, 0.8, 0.6, 0.4, 0.3]
     },
@@ -86,6 +92,7 @@
       "bpm": 85,
       "tags": ["suspense", "dark", "mysterious", "thriller"],
       "upload_date": "2024-01-11",
+      "projectId": 2,
       "business_id": "global",
       "waveform_data": [0.1, 0.3, 0.2, 0.4, 0.3, 0.5, 0.4, 0.6, 0.5, 0.7, 0.6, 0.8, 0.7, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3]
     },
@@ -102,6 +109,7 @@
       "bpm": 140,
       "tags": ["happy", "children", "adventure", "family"],
       "upload_date": "2024-01-12",
+      "projectId": 2,
       "business_id": "global",
       "waveform_data": [0.3, 0.5, 0.7, 0.9, 0.8, 0.6, 0.8, 0.9, 0.7, 0.5, 0.7, 0.9, 0.8, 0.6, 0.4, 0.6, 0.8, 0.9, 0.7, 0.5]
     },
@@ -118,6 +126,7 @@
       "bpm": 110,
       "tags": ["tech", "electronic", "innovation", "modern"],
       "upload_date": "2024-01-13",
+      "projectId": 3,
       "business_id": "global",
       "waveform_data": [0.4, 0.6, 0.8, 0.7, 0.9, 0.8, 0.6, 0.8, 0.9, 0.7, 0.5, 0.7, 0.9, 0.8, 0.6, 0.4, 0.6, 0.8, 0.9, 0.7]
     },
@@ -134,6 +143,7 @@
       "bpm": 60,
       "tags": ["meditation", "calm", "ambient", "relaxation"],
       "upload_date": "2024-01-14",
+      "projectId": 4,
       "business_id": "global",
       "waveform_data": [0.2, 0.3, 0.4, 0.3, 0.2, 0.4, 0.5, 0.4, 0.3, 0.2, 0.3, 0.4, 0.3, 0.2, 0.3, 0.4, 0.3, 0.2, 0.3, 0.4]
     }
@@ -149,6 +159,7 @@
       "dimensions": "1920x1080",
       "tags": ["office", "business", "modern", "workplace"],
       "upload_date": "2024-01-05",
+      "projectId": 1,
       "business_id": "global",
       "url": "/assets/photos/modern-office.jpg"
     },
@@ -162,6 +173,7 @@
       "dimensions": "1920x1080",
       "tags": ["team", "meeting", "collaboration", "diversity"],
       "upload_date": "2024-01-06",
+      "projectId": 1,
       "business_id": "global",
       "url": "/assets/photos/team-meeting.jpg"
     },
@@ -175,6 +187,7 @@
       "dimensions": "2560x1440",
       "tags": ["product", "showcase", "professional", "clean"],
       "upload_date": "2024-01-07",
+      "projectId": 2,
       "business_id": "global",
       "url": "/assets/photos/product-showcase.png"
     },
@@ -188,6 +201,7 @@
       "dimensions": "3840x2160",
       "tags": ["nature", "landscape", "background", "scenic"],
       "upload_date": "2024-01-08",
+      "projectId": 3,
       "business_id": "global",
       "url": "/assets/photos/nature-landscape.jpg"
     },
@@ -201,6 +215,7 @@
       "dimensions": "800x600",
       "tags": ["abstract", "design", "modern", "creative"],
       "upload_date": "2024-01-09",
+      "projectId": 4,
       "business_id": "global",
       "url": "/assets/photos/abstract-design.svg"
     }
@@ -218,6 +233,7 @@
       "fps": 30,
       "tags": ["product", "demo", "professional", "marketing"],
       "upload_date": "2024-01-01",
+      "projectId": 1,
       "business_id": "global",
       "url": "/assets/videos/product-demo.mp4",
       "thumbnail": "/assets/videos/thumbnails/product-demo.jpg"
@@ -234,6 +250,7 @@
       "fps": 30,
       "tags": ["team", "corporate", "culture", "introduction"],
       "upload_date": "2024-01-02",
+      "projectId": 2,
       "business_id": "global",
       "url": "/assets/videos/team-intro.mp4",
       "thumbnail": "/assets/videos/thumbnails/team-intro.jpg"
@@ -250,6 +267,7 @@
       "fps": 30,
       "tags": ["tutorial", "educational", "guide", "software"],
       "upload_date": "2024-01-03",
+      "projectId": 3,
       "business_id": "global",
       "url": "/assets/videos/tutorial-guide.mp4",
       "thumbnail": "/assets/videos/thumbnails/tutorial-guide.jpg"
@@ -266,6 +284,7 @@
       "fps": 30,
       "tags": ["event", "highlights", "celebration", "company"],
       "upload_date": "2024-01-04",
+      "projectId": 3,
       "business_id": "global",
       "url": "/assets/videos/event-highlights.mp4",
       "thumbnail": "/assets/videos/thumbnails/event-highlights.jpg"
@@ -282,6 +301,7 @@
       "fps": 60,
       "tags": ["animation", "creative", "showcase", "portfolio"],
       "upload_date": "2024-01-05",
+      "projectId": 4,
       "business_id": "global",
       "url": "/assets/videos/animation-showcase.mp4",
       "thumbnail": "/assets/videos/thumbnails/animation-showcase.jpg"

@@ -1,0 +1,44 @@
+[
+  {
+    "id": 1,
+    "projectId": 1,
+    "user": "John Doe",
+    "role": "Project Manager"
+  },
+  {
+    "id": 2,
+    "projectId": 1,
+    "user": "Jane Smith",
+    "role": "Lead Developer"
+  },
+  {
+    "id": 3,
+    "projectId": 2,
+    "user": "Qibal",
+    "role": "Project Manager"
+  },
+  {
+    "id": 4,
+    "projectId": 2,
+    "user": "Peter Jones",
+    "role": "Lead Developer"
+  },
+  {
+    "id": 5,
+    "projectId": 3,
+    "user": "Mary Smith",
+    "role": "API Specialist"
+  },
+  {
+    "id": 6,
+    "projectId": 4,
+    "user": "John Doe",
+    "role": "Internal Tool Developer"
+  },
+  {
+    "id": 7,
+    "projectId": 4,
+    "user": "Qibal",
+    "role": "Stakeholder"
+  }
+]

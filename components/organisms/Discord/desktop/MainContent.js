@@ -6,6 +6,7 @@ import {
     Pin,
     Users,
     MoreVertical,
+    RefreshCw,
 } from "lucide-react"
 
 import { Button } from "@/components/Shadcn/button"
@@ -19,7 +20,7 @@ import DocumentChannel from "@/components/organisms/Discord/DocumentChannel"
 import DatabaseChannel from "@/components/organisms/Discord/DatabaseChannel"
 import ReportChannel from "@/components/organisms/Discord/ReportChannel"
 
-export default function MainContent({ currentChannel, renderChannelContent }) {
+export default function MainContent({ currentChannel, renderChannelContent, syncStatus, lastSyncedTime, onSyncStatusChange, onTriggerSync }) {
     if (!currentChannel) {
         return (
             <ResizablePanel defaultSize={60}>
@@ -47,8 +48,17 @@ export default function MainContent({ currentChannel, renderChannelContent }) {
                                     )}
                                 </div>
                                 <div className="ml-auto flex items-center space-x-2">
+                                    {syncStatus === 'syncing' && (
+                                        <span className="text-xs text-muted-foreground">Syncing...</span>
+                                    )}
+                                    {syncStatus === 'synced' && lastSyncedTime && (
+                                        <span className="text-xs text-muted-foreground">Last synced: {lastSyncedTime.toLocaleTimeString()}</span>
+                                    )}
                                     <Button variant="ghost" size="icon" className="w-8 h-8">
                                         <Pin className="w-4 h-4" />
+                                    </Button>
+                                    <Button variant="ghost" size="icon" className="w-8 h-8" onClick={onTriggerSync}>
+                                        <RefreshCw className="w-4 h-4" />
                                     </Button>
                                     <Button variant="ghost" size="icon" className="w-8 h-8">
                                         <Users className="w-4 h-4" />

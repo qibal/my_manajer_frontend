@@ -92,46 +92,66 @@ export default function BusinessServers({ businessData, selectedBusiness, setSel
 
     return (
         <div className="w-16 bg-muted/30 flex flex-col items-center py-3 border-r ">
-        <ScrollArea className="flex-1 w-full">
-            <div className="flex flex-col items-center space-y-2 px-2">
-                {safeBusinessData.map((business, idx) => {
-                    console.log("BusinessServers: Mapping business", business);
-                    // Ensure business.id is defined before using it in find
-                    const firstChannelForBusiness = business.id ? safeChannels.find(channel => {
-                        console.log(`BusinessServers: Looking for channel with businessId ${business.id} in channel`, channel);
-                        return channel.businessId === business.id;
-                    }) : undefined;
-                    console.log(`BusinessServers: firstChannelForBusiness for ${business.id}`, firstChannelForBusiness);
-                    return (
-                        <Tooltip key={business.id || idx}>
-                            <TooltipTrigger asChild>
-                                <Button
-                                    variant={selectedBusiness === business.id ? "default" : "ghost"}
-                                    size="icon"
-                                    className={`w-12 h-12 rounded-2xl transition-all duration-200 ${selectedBusiness === business.id ? "rounded-xl" : "hover:rounded-xl"
-                                        }`}
-                                    onClick={() => {
-                                        setSelectedBusiness(business.id)
-                                    }}
-                                >
-                                    <Avatar className="w-8 h-8">
-                                        <AvatarImage src={business.avatar || "/placeholder.svg"} />
-                                        <AvatarFallback>{business.name.charAt(0).toUpperCase()}</AvatarFallback>
-                                    </Avatar>
-                                </Button>
-                            </TooltipTrigger>
-                            <TooltipContent side="right">
-                                <p>{business.name}</p>
-                            </TooltipContent>
-                        </Tooltip>
-                    );
-                })}
-                <Separator className="w-8 my-2" />
-                <AddBusinessDialog onBusinessAdded={onBusinessAdded} />
-            </div>
-        </ScrollArea>
+            <ScrollArea className="flex-1 w-full">
+                <div className="flex flex-col items-center space-y-2 px-2">
+                    <Tooltip >
+                        <Link href="/app_management" passHref>
+                        <TooltipTrigger asChild>
+                            <Button
+                                variant={"default"}
+                                size="icon"
+                                className={`w-12 h-12 rounded-2xl transition-all duration-200`}
+                            >
+                                <Avatar className="w-8 h-8">
+                                    <AvatarImage src={"/placeholder.svg"} />
+                                    <AvatarFallback>A</AvatarFallback>
+                                </Avatar>
+                            </Button>
+                        </TooltipTrigger>
+                        </Link>
+                        <TooltipContent side="right">
+                            <p>App Management</p>
+                        </TooltipContent>
+                    </Tooltip>
+                    <Separator className="w-8 my-2" />
+                    {safeBusinessData.map((business, idx) => {
+                        console.log("BusinessServers: Mapping business", business);
+                        // Ensure business.id is defined before using it in find
+                        const firstChannelForBusiness = business.id ? safeChannels.find(channel => {
+                            console.log(`BusinessServers: Looking for channel with businessId ${business.id} in channel`, channel);
+                            return channel.businessId === business.id;
+                        }) : undefined;
+                        console.log(`BusinessServers: firstChannelForBusiness for ${business.id}`, firstChannelForBusiness);
+                        return (
+                            <Tooltip key={business.id || idx}>
+                                <TooltipTrigger asChild>
+                                    <Button
+                                        variant={selectedBusiness === business.id ? "default" : "ghost"}
+                                        size="icon"
+                                        className={`w-12 h-12 rounded-2xl transition-all duration-200 ${selectedBusiness === business.id ? "rounded-xl" : "hover:rounded-xl"
+                                            }`}
+                                        onClick={() => {
+                                            setSelectedBusiness(business.id)
+                                        }}
+                                    >
+                                        <Avatar className="w-8 h-8">
+                                            <AvatarImage src={business.avatar || "/placeholder.svg"} />
+                                            <AvatarFallback>{business.name.charAt(0).toUpperCase()}</AvatarFallback>
+                                        </Avatar>
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent side="right">
+                                    <p>{business.name}</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        );
+                    })}
+                    <Separator className="w-8 my-2" />
+                    <AddBusinessDialog onBusinessAdded={onBusinessAdded} />
+                </div>
+            </ScrollArea>
 
 
-    </div>
+        </div>
     )
 }

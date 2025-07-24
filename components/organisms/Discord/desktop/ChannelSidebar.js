@@ -363,7 +363,7 @@ export default function ChannelSidebar({ selectedBusiness, selectedChannel, setS
                                         <UserPlus className="mr-2 h-4 w-4" />
                                         Invite People
                                     </Button>
-                                    <Link href={`/discord/business_settings/${selectedBusiness}`} passHref>
+                                    <Link href={`/business_settings/${selectedBusiness}`} passHref>
                                         <Button variant="ghost" className="w-full justify-start font-normal">
                                             <Cog className="mr-2 h-4 w-4" />
                                             Business Settings

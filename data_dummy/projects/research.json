@@ -1,7 +1,7 @@
 [
   {
     "id": "research_001",
-    "projectId": "project_001",
+    "projectId": 1,
     "author": {
       "name": "Jane Doe",
       "avatar": "https://avatars.githubusercontent.com/u/6128107?v=4"
@@ -25,7 +25,7 @@
   },
   {
     "id": "research_002",
-    "projectId": "project_001",
+    "projectId": 1,
     "author": {
       "name": "Peter Jones",
       "avatar": "https://avatars.githubusercontent.com/u/4392815?v=4"
@@ -39,7 +39,7 @@
   },
   {
     "id": "research_003",
-    "projectId": "project_001",
+    "projectId": 1,
     "author": {
       "name": "Jane Doe",
       "avatar": "https://avatars.githubusercontent.com/u/6128107?v=4"
@@ -52,7 +52,7 @@
   },
   {
     "id": "research_004",
-    "projectId": "project_001",
+    "projectId": 1,
     "author": {
       "name": "Mary Smith",
       "avatar": "https://avatars.githubusercontent.com/u/1033878?v=4"
@@ -66,7 +66,7 @@
   },
   {
     "id": "research_005",
-    "projectId": "project_001",
+    "projectId": 2,
     "author": {
       "name": "Qibal",
       "avatar": "https://avatars.githubusercontent.com/u/74609802?v=4"

@@ -25,6 +25,8 @@ import MainContent from "@/components/organisms/Discord/desktop/MainContent"
 import channelData from "@/discord_data_dummy/channels.json";
 import { onlineUsers, getStatusColor } from "@/discord_data_dummy/discordData";
 import businessService from "@/service/business_service";
+import channelService from "@/service/channel_service";
+import { getChannelIcon } from "@/lib/utils";
 
 const renderChannelContent = (channel) => {
   if (!channel) {
@@ -35,21 +37,16 @@ const renderChannelContent = (channel) => {
     );
   }
   switch (channel?.type) {
-    case "text":
     case "messages":
       return <ChatChannel channel={channel} />
-    case "voice":
+    case "voices":
       return <VoiceChannel channel={channel} />
-    case "draw":
     case "drawings":
       return <DrawChannel channel={channel} />
-    case "document":
     case "documents":
       return <DocumentChannel channel={channel} />
-    case "database":
     case "databases":
       return <DatabaseChannel channel={channel} />
-    case "report":
     case "reports":
       return <ReportChannel channel={channel} />
     default:
@@ -66,19 +63,35 @@ export default function DiscordDashboard() {
   const [isMobile, setIsMobile] = useState(false)
   const [showChannelView, setShowChannelView] = useState(false)
   const [businessList, setBusinessList] = useState([]);
+  const [channels, setChannels] = useState([]);
+  const [refreshChannelsTrigger, setRefreshChannelsTrigger] = useState(0);
 
-  const currentChannels = channelData.filter(channel => channel.businessId === selectedBusiness);
+  const currentChannels = channels.filter(channel => channel.businessId === selectedBusiness);
   console.log("🚀 ~ DiscordDashboard ~ currentChannels:", currentChannels)
-  const currentChannel = currentChannels.find((c) => c._id === selectedChannel)
+  const currentChannel = currentChannels.find((c) => c.id === selectedChannel)
 
     const groupedChannels = currentChannels.reduce((acc, channel) => {
-        const category = channel.category || 'Uncategorized';
+        const category = channel.categoryId || '__NO_CATEGORY__';
         if (!acc[category]) {
             acc[category] = [];
         }
         acc[category].push(channel);
         return acc;
     }, {});
+    console.log("🚀 ~ groupedChannels ~ groupedChannels:", groupedChannels)
+
+    // Pindahkan '__NO_CATEGORY__' ke awal jika ada
+    const orderedGroupedChannels = {};
+    if (groupedChannels['__NO_CATEGORY__']) {
+        orderedGroupedChannels['__NO_CATEGORY__'] = groupedChannels['__NO_CATEGORY__'];
+        delete groupedChannels['__NO_CATEGORY__'];
+    }
+    
+    // Tambahkan kategori lainnya
+    Object.keys(groupedChannels).sort().forEach(key => {
+        orderedGroupedChannels[key] = groupedChannels[key];
+    });
+
 
   const toggleRightSidebar = () => {
     if (isRightSidebarMaximized) {
@@ -114,12 +127,38 @@ export default function DiscordDashboard() {
       if (res && res.data && res.data.length > 0) {
         setBusinessList(res.data);
         setSelectedBusiness(res.data[0].id);
-        // Otomatis pilih channel pertama dari bisnis pertama, untuk sementara set ke null untuk isolasi masalah
-        // const firstChannel = channelData.find(channel => channel.businessId === res.data[0]._id);
-        setSelectedChannel(null); // Atau bisa set ke ID channel dummy jika diperlukan untuk rendering
+      } else {
+        setBusinessList([]);
+        setSelectedBusiness(null);
       }
+    }).catch(error => {
+      console.error("Error fetching businesses:", error);
+      setBusinessList([]);
+      setSelectedBusiness(null);
     });
   }, []);
+
+  useEffect(() => {
+    if (selectedBusiness) {
+      channelService.getByBusinessId(selectedBusiness).then((res) => {
+        if (res && res.data) {
+          setChannels(res.data);
+          if (res.data.length > 0) {
+            setSelectedChannel(res.data[0].id); // Pilih channel pertama dari bisnis yang dipilih
+          } else {
+            setSelectedChannel(null);
+          }
+        } else {
+          setChannels([]);
+          setSelectedChannel(null);
+        }
+      }).catch(error => {
+        console.error("Error fetching channels:", error);
+        setChannels([]);
+        setSelectedChannel(null);
+      });
+    }
+  }, [selectedBusiness, refreshChannelsTrigger]); // Tambahkan refreshChannelsTrigger sebagai dependency
 
   // Mobile Channel View
   if (isMobile && showChannelView) {
@@ -142,7 +181,9 @@ export default function DiscordDashboard() {
                 setSelectedBusiness={setSelectedBusiness}
                 selectedChannel={selectedChannel}
                 setSelectedChannel={setSelectedChannel}
-                groupedChannels={groupedChannels}
+                groupedChannels={orderedGroupedChannels}
+                businessData={businessList}
+                channels={channels}
            />
     )
   }
@@ -158,15 +199,19 @@ export default function DiscordDashboard() {
                     setSelectedBusiness={setSelectedBusiness}
                     setSelectedChannel={setSelectedChannel}
                     onBusinessAdded={(newBusiness) => setBusinessList((prevList) => [...prevList, newBusiness])}
+                    channels={channels}
                 />
 
-        {/* Main Content Area */}
+      
         <ResizablePanelGroup direction="horizontal" className="flex-1">
                     <ChannelSidebar 
                         selectedBusiness={selectedBusiness}
                         selectedChannel={selectedChannel}
                         setSelectedChannel={setSelectedChannel}
-                        groupedChannels={groupedChannels}
+                        groupedChannels={orderedGroupedChannels}
+                        channels={channels}
+                        businessList={businessList}
+                        onChannelOrCategoryCreated={() => setRefreshChannelsTrigger(prev => prev + 1)}
                     />
 
           <ResizableHandle />

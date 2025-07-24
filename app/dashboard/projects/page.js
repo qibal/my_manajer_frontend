@@ -57,6 +57,9 @@ import { Badge } from "@/components/Shadcn/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/Shadcn/avatar";
 
 import projectsData from '@/data_dummy/dashboard/projects.json';
+import researchData from '@/data_dummy/projects/research.json';
+import scriptsData from '@/data_dummy/projects/script.json';
+import storyboardsData from '@/data_dummy/projects/pre_production.json';
 
 const ITEMS_PER_PAGE_OPTIONS = [20, 50, 100];
 
@@ -76,7 +79,20 @@ export default function ProjectsPage() {
   });
 
   useEffect(() => {
-    setProjects(projectsData);
+    // This combines all project-related data into one structure.
+    const combinedProjects = projectsData.map(project => {
+      const research = researchData.filter(r => r.projectId === project.id);
+      const script = scriptsData.find(s => s.projectId === project.id);
+      const storyboard = storyboardsData.find(s => s.projectId === project.id);
+      
+      return {
+        ...project,
+        research,
+        script: script ? script : null,
+        storyboard: storyboard ? storyboard : null,
+      };
+    });
+    setProjects(combinedProjects);
   }, []);
 
   const filteredProjects = useMemo(() => {
@@ -314,6 +330,9 @@ export default function ProjectsPage() {
                 <TableHead className="w-[200px]">Title</TableHead>
                 <TableHead>Description</TableHead>
                 <TableHead className="w-[100px]">Status</TableHead>
+                <TableHead className="w-[120px]">Research</TableHead>
+                <TableHead className="w-[120px]">Script</TableHead>
+                <TableHead className="w-[120px]">Storyboard</TableHead>
                 <TableHead className="w-[100px]">Priority</TableHead>
                 <TableHead className="w-[120px]">Start Date</TableHead>
                 <TableHead className="w-[120px]">Due Date</TableHead>
@@ -356,6 +375,21 @@ export default function ProjectsPage() {
                       </Button>
                     </TableCell>
                     <TableCell><Badge variant={getStatusBadgeVariant(project.status)}>{project.status}</Badge></TableCell>
+                    <TableCell>
+                      <Badge variant={project.research && project.research.length > 0 ? "success" : "secondary"}>
+                        {project.research && project.research.length > 0 ? "Started" : "Pending"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={project.script ? "success" : "secondary"}>
+                        {project.script ? "Started" : "Pending"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={project.storyboard ? "success" : "secondary"}>
+                        {project.storyboard ? "Started" : "Pending"}
+                      </Badge>
+                    </TableCell>
                     <TableCell><Badge variant={getPriorityBadgeVariant(project.priority)}>{project.priority}</Badge></TableCell>
                     <TableCell>{format(parseISO(project.start_date), 'PPP', { locale: id })}</TableCell>
                     <TableCell>{format(parseISO(project.due_date), 'PPP', { locale: id })}</TableCell>
@@ -400,7 +434,7 @@ export default function ProjectsPage() {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={20} className="h-24 text-center">
+                  <TableCell colSpan={23} className="h-24 text-center">
                     No projects found.
                   </TableCell>
                 </TableRow>
