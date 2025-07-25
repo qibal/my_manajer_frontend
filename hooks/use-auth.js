@@ -1,56 +1,67 @@
-import { useState, useEffect } from 'react';
+'use client'
+
+import { useState, useEffect, createContext, useContext } from 'react';
 import Cookies from 'js-cookie';
 import { useRouter } from 'next/navigation';
-import authService from '@/service/auth_service';
+import { jwtDecode } from 'jwt-decode'; // Import jwtDecode
+import userService from '@/service/user_service'; // Import userService
 
-export function useAuth() {
+const AuthContext = createContext(null);
+
+export function AuthProvider({ children }) {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
     const router = useRouter();
 
     useEffect(() => {
-        const token = Cookies.get('jwt_token');
-        if (token) {
-            // Anda bisa menambahkan logika validasi token di sini
-            // Untuk saat ini, kita hanya mengasumsikan token valid jika ada
-            // Dan mengambil data user dari token atau dari API jika diperlukan
-            setUser({ isAuthenticated: true }); // Placeholder, Anda bisa mendekode token untuk data user
-        }
-        setLoading(false);
+        const loadUserFromCookies = async () => {
+            const token = Cookies.get('jwt_token');
+            if (token) {
+                try {
+                    const decodedToken = jwtDecode(token);
+                    const userId = decodedToken.user_id; // Pastikan ini sesuai dengan key di token Anda
+
+                    const userData = await userService.getUserById(userId);
+                    if (userData) {
+                        setUser({ isAuthenticated: true, ...userData });
+                        console.log('User data loaded from cookies and API:', userData);
+                    } else {
+                        console.log('User data not found for ID from token. Logging out.');
+                        Cookies.remove('jwt_token');
+                        setUser(null);
+                    }
+                } catch (error) {
+                    console.error('Error decoding token or fetching user data:', error);
+                    Cookies.remove('jwt_token');
+                    setUser(null);
+                }
+            } else {
+                setUser(null);
+            }
+            setLoading(false);
+        };
+
+        loadUserFromCookies();
     }, []);
 
-    const login = async (email, password) => {
-        setLoading(true);
-        try {
-            const response = await authService.login(email, password);
-            if (response.status_code === 200 && response.data?.token) {
-                Cookies.set('jwt_token', response.data.token, { expires: 7 }); // Simpan token 7 hari
-                setUser({ isAuthenticated: true, businessIds: response.data.businessIds });
-
-                if (response.data.businessIds && response.data.businessIds.length > 0) {
-                    // Redirect ke halaman business server dengan businessId pertama
-                    router.push(`/${response.data.businessIds[0]}/chanel_id`); // Ganti chanel_id dengan id chanel default
-                } else {
-                    // Jika tidak ada businessId, redirect ke dashboard
-                    router.push('/dashboard');
-                }
-                return { success: true };
-            } else {
-                return { success: false, message: response.message || 'Login failed' };
-            }
-        } catch (err) {
-            console.error('Login error:', err);
-            return { success: false, message: err.response?.data?.message || 'Terjadi kesalahan saat login.' };
-        } finally {
-            setLoading(false);
-        }
-    };
-
     const logout = () => {
-        Cookies.remove('jwt_token');
+        Cookies.remove('jwt_token', { path: '/' }); // Tambahkan path: '/'
         setUser(null);
-        router.push('/login'); // Redirect ke halaman login setelah logout
+        router.push('/login');
     };
 
-    return { user, loading, login, logout };
+    // Fungsi untuk memperbarui status pengguna secara manual setelah login di page.js
+    const updateAuthState = (userData) => {
+        setUser({ isAuthenticated: true, ...userData });
+    };
+
+    return (
+        <AuthContext.Provider value={{ user, loading, logout, setUser: updateAuthState }}>
+            {children}
+        </AuthContext.Provider>
+    );
+}
+
+export function useAuth() {
+    return useContext(AuthContext);
 }

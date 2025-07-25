@@ -9,9 +9,18 @@ const userService = {
       throw error.response?.data?.message || 'Failed to fetch users';
     }
   },
+  // Menambahkan fungsi untuk mendapatkan user berdasarkan ID
+  getUserById: async (id) => {
+    try {
+      const response = await backend.get(`/users/${id}`);
+      return response.data.data; // Sesuaikan dengan struktur respons API Anda
+    } catch (error) {
+      throw error.response?.data?.message || 'Failed to fetch user by ID';
+    }
+  },
   createUser: async (userData) => {
     try {
-      const response = await backend.post('/users', userData);
+      const response = await backend.post('/users/register', userData); // Menggunakan endpoint /users/register
       return response.data.data; // Sesuaikan dengan struktur respons API Anda
     } catch (error) {
       throw error.response?.data?.message || 'Failed to create user';
