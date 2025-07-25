@@ -1,30 +1,30 @@
 // Core variables and animations (must be first)
-@import 'variables';
-@import 'keyframe-animations';
+@use 'variables';
+@use 'keyframe-animations';
 
 // --- Import all Tiptap component and node styles ---
 
 // UI Primitives
-@import '../components/TipTap/tiptap-ui-primitive/button/button.scss';
-@import '../components/TipTap/tiptap-ui-primitive/button/button-colors.scss';
-@import '../components/TipTap/tiptap-ui-primitive/button/button-group.scss';
-@import '../components/TipTap/tiptap-ui-primitive/dropdown-menu/dropdown-menu.scss';
-@import '../components/TipTap/tiptap-ui-primitive/popover/popover.scss';
-@import '../components/TipTap/tiptap-ui-primitive/separator/separator.scss';
-@import '../components/TipTap/tiptap-ui-primitive/toolbar/toolbar.scss';
-@import '../components/TipTap/tiptap-ui-primitive/tooltip/tooltip.scss';
+@use '../components/TipTap/tiptap-ui-primitive/button/button.scss';
+@use '../components/TipTap/tiptap-ui-primitive/button/button-colors.scss';
+@use '../components/TipTap/tiptap-ui-primitive/button/button-group.scss';
+@use '../components/TipTap/tiptap-ui-primitive/dropdown-menu/dropdown-menu.scss';
+@use '../components/TipTap/tiptap-ui-primitive/popover/popover.scss';
+@use '../components/TipTap/tiptap-ui-primitive/separator/separator.scss';
+@use '../components/TipTap/tiptap-ui-primitive/toolbar/toolbar.scss';
+@use '../components/TipTap/tiptap-ui-primitive/tooltip/tooltip.scss';
 
 // UI Components
-@import '../components/TipTap/tiptap-ui/color-highlight-button/color-highlight-button.scss';
-@import '../components/TipTap/tiptap-ui/color-highlight-popover/color-highlight-popover.scss';
-@import '../components/TipTap/tiptap-ui/link-popover/link-popover.scss';
+@use '../components/TipTap/tiptap-ui/color-highlight-button/color-highlight-button.scss';
+@use '../components/TipTap/tiptap-ui/color-highlight-popover/color-highlight-popover.scss';
+@use '../components/TipTap/tiptap-ui/link-popover/link-popover.scss';
 
 // Node Components
-@import '../components/TipTap/tiptap-node/code-block-node/code-block-node.scss';
-@import '../components/TipTap/tiptap-node/image-node/image-node.scss';
-@import '../components/TipTap/tiptap-node/image-upload-node/image-upload-node.scss';
-@import '../components/TipTap/tiptap-node/list-node/list-node.scss';
-@import '../components/TipTap/tiptap-node/paragraph-node/paragraph-node.scss';
+@use '../components/TipTap/tiptap-node/code-block-node/code-block-node.scss';
+@use '../components/TipTap/tiptap-node/image-node/image-node.scss';
+@use '../components/TipTap/tiptap-node/image-upload-node/image-upload-node.scss';
+@use '../components/TipTap/tiptap-node/list-node/list-node.scss';
+@use '../components/TipTap/tiptap-node/paragraph-node/paragraph-node.scss';
 
 // Simple Editor Template
-@import '../components/TipTap/tiptap-templates/simple/simple-editor.scss'; 
+@use '../components/TipTap/tiptap-templates/simple/simple-editor.scss';

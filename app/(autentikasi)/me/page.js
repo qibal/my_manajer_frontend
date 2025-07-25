@@ -1,4 +1,4 @@
-// my_manajer/app/(autentikasi)/@me/page.js
+// my_manajer/app/(autentikasi)/me/page.js
 "use client"
 
 import { useState } from "react"

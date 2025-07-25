@@ -45,15 +45,15 @@ export default function BusinessLayout({ children }) {
         setBusinessList([]); // Ensure it's an empty array even on invalid response
         setSelectedBusiness(null);
         console.error("Business service returned invalid data or no data.");
-        // Redirect ke /@me jika tidak ada bisnis
-        router.push('/@me');
+        // Redirect ke /me jika tidak ada bisnis
+        router.push('/me');
       }
     }).catch(error => {
       console.error("Error fetching businesses:", error);
       setBusinessList([]); // Ensure it's an empty array on error
       setSelectedBusiness(null);
-      // Redirect ke /@me jika terjadi error
-      router.push('/@me');
+      // Redirect ke /me jika terjadi error
+      router.push('/me');
     });
   }, [business_server, router]);
 

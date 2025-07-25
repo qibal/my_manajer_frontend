@@ -5,7 +5,10 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { MoreHorizontal, PlusCircle, Edit, Trash2, Power, PowerOff } from 'lucide-react';
-import { formatIndonesianDate } from '@/lib/utils';
+import { formatIndonesianDate } from "@/lib/utils";
+import { toast } from "sonner";
+import Image from 'next/image';
+
 import userService from '@/service/user_service';
 
 // Shadcn UI Components
@@ -158,7 +161,7 @@ export default function UserManagementContent() {
                 password: values.password,
                 avatar: values.avatar,
             });
-            alert('Pengguna berhasil dibuat!');
+            toast.success('Pengguna berhasil dibuat!');
             setIsCreateDialogOpen(false);
             fetchUsers();
         } catch (err) {
@@ -175,7 +178,7 @@ export default function UserManagementContent() {
                 isActive: values.isActive,
                 avatar: values.avatar,
             });
-            alert('Pengguna berhasil diperbarui!');
+            toast.success('Pengguna berhasil diperbarui!');
             setIsEditDialogOpen(false);
             fetchUsers();
         } catch (err) {
@@ -187,11 +190,11 @@ export default function UserManagementContent() {
         if (!selectedUser) return;
         try {
             await userService.deleteUser(selectedUser.id);
-            alert('Pengguna berhasil dihapus.');
+            toast.success('Pengguna berhasil dihapus.');
             setIsDeleteDialogOpen(false);
             fetchUsers();
         } catch (err) {
-            alert(err.message || 'Gagal menghapus pengguna.');
+            toast.error(err.message || 'Gagal menghapus pengguna.');
             setIsDeleteDialogOpen(false);
         }
     };
@@ -199,10 +202,10 @@ export default function UserManagementContent() {
     const handleToggleActive = async (user) => {
         try {
             await userService.updateUser(user.id, { isActive: !user.isActive });
-            alert(`Pengguna ${user.username} berhasil ${user.isActive ? 'nonaktifkan' : 'aktifkan'}!`);
+            toast.success(`Pengguna ${user.username} berhasil ${user.isActive ? 'nonaktifkan' : 'aktifkan'}!`);
             fetchUsers();
         } catch (err) {
-            alert(err.message || `Gagal ${user.isActive ? 'nonaktifkan' : 'aktifkan'} pengguna.`);
+            toast.error(err.message || `Gagal ${user.isActive ? 'nonaktifkan' : 'aktifkan'} pengguna.`);
         }
     };
 
@@ -318,16 +321,20 @@ export default function UserManagementContent() {
                             <TableRow key={user.id}>
                                 <TableCell>
                                     <div className="flex items-center gap-3">
-                                        <Avatar>
-                                            <AvatarImage src={user.avatar} alt={user.username} />
-                                            <AvatarFallback>{user.username.charAt(0).toUpperCase()}</AvatarFallback>
-                                        </Avatar>
-                                        <div>
-                                            <p className="font-medium">{user.username}</p>
-                                            <p className="text-sm text-muted-foreground">{user.email}</p>
+                                        <div className="relative h-10 w-10">
+                                            <Image
+                                                src={user.profilePictureUrl || '/default-avatar.png'}
+                                                alt={`${user.name}'s profile picture`}
+                                                layout="fill"
+                                                objectFit="cover"
+                                                className="rounded-full"
+                                            />
                                         </div>
+                                        <div className="font-medium">{user.name}</div>
                                     </div>
                                 </TableCell>
+                                <TableCell>{user.username}</TableCell>
+                                <TableCell className="hidden md:table-cell">{user.email}</TableCell>
                                 <TableCell>
                                     {Object.entries(user.roles || {}).flatMap(([system, roleList]) => 
                                         roleList.map(role => (
@@ -443,7 +450,7 @@ export default function UserManagementContent() {
                                                 }
                                             }} />
                                         </FormControl>
-                                         {avatarPreview && <img src={avatarPreview} alt="Avatar Preview" className="mt-2 h-20 w-20 rounded-full object-cover" />}
+                                         {avatarPreview && <Image src={avatarPreview} alt="Avatar Preview" className="mt-2 h-20 w-20 rounded-full object-cover" />}
                                     </FormItem>
                                 )}
                             />

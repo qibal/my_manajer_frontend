@@ -67,8 +67,8 @@ export default function BusinessServerPage({ selectedBusiness, businessList, cha
   const [isMobile, setIsMobile] = useState(false)
 
   useEffect(() => {
-    if (selectedBusinessId === '@me') {
-      router.push('/@me');
+    if (selectedBusinessId === 'me') {
+      router.push('/me');
       return;
     }
 

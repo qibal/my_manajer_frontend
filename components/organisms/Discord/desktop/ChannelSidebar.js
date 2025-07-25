@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 
 import {
     Hash,
@@ -312,27 +312,26 @@ export default function ChannelSidebar({ selectedBusiness, selectedChannel, setS
     const [isCreateCategoryDialogOpen, setIsCreateCategoryDialogOpen] = useState(false);
     const router = useRouter(); // Initialize useRouter
 
-    const fetchChannelCategories = async () => {
-        try {
-            const res = await channelCategoryService.getByBusinessId(selectedBusiness);
-            if (res && res.data) {
-                setChannelCategories(res.data);
-            } else {
-                setChannelCategories([]);
-            }
-        } catch (error) {
-            console.error("Error fetching channel categories:", error);
-            setChannelCategories([]);
-        }
-    };
+    const [categories, setCategories] = useState([]);
+    const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        if (selectedBusiness) {
-            fetchChannelCategories();
-        } else {
-            setChannelCategories([]);
+    const fetchChannelCategories = useCallback(async () => {
+        if (!selectedBusiness) return;
+        setLoading(true);
+        try {
+            const data = await channelCategoryService.getByBusinessId(selectedBusiness);
+            setCategories(data.data || []);
+        } catch (error) {
+            console.error("Failed to fetch channel categories:", error);
+            setCategories([]);
+        } finally {
+            setLoading(false);
         }
     }, [selectedBusiness]);
+
+    useEffect(() => {
+        fetchChannelCategories();
+    }, [fetchChannelCategories]);
 
     const currentBusinessName = (Array.isArray(businessList) && businessList.length > 0 && selectedBusiness) 
         ? businessList.find((b) => b.id === selectedBusiness)?.name 

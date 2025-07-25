@@ -31,20 +31,21 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/Shadcn/ta
 import { ContextMenu, ContextMenuTrigger, ContextMenuContent, ContextMenuItem, ContextMenuSeparator } from "@/components/Shadcn/context-menu"
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@/components/Shadcn/dropdown-menu"
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/Shadcn/popover"
-import { currentUser } from "@/discord_data_dummy/discordData";
-// import messagesData from "@/discord_data_dummy/messages.json"; // Hapus import dummy data
+import { useAuth } from "@/hooks/use-auth";
 import { formatTime, formatDate } from "@/lib/utils";
+import Image from 'next/image';
 import ReadReceipt from "@/components/atoms/ReadReceipt";
 import Link from 'next/link';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/Shadcn/collapsible";
 import ExcalidrawWrapper from '@/components/Excalidraw/excalidraw';
 import createWebSocketService from "@/service/messages_webhook";
 
-export default function ChatChannel({ channel, onSyncStatusChange, syncCounter }) {
+const ChatChannel = ({ channel, onSyncStatusChange, syncCounter }) => {
     const [message, setMessage] = useState("")
     const [messages, setMessages] = useState([]); // State untuk pesan dari WebSocket
     const wsService = useRef(null);
-    const scrollAreaRef = useRef(null);
+    const messagesEndRef = useRef(null);
+    const hasFetchedHistory = useRef(false);
 
     const [showPinned, setShowPinned] = useState(true);
     const [pinnedIndex, setPinnedIndex] = useState(0);
@@ -64,9 +65,11 @@ export default function ChatChannel({ channel, onSyncStatusChange, syncCounter }
         }
 
         console.log(`ChatChannel: Setting up WebSocket for channel: ${channel.id}`);
+        onSyncStatusChange('syncing');
+        hasFetchedHistory.current = false;
 
         // Callback untuk menerima pesan dari WebSocket service
-        const onMessageReceived = (data) => {
+        const handleNewMessage = (data) => {
             console.log("ChatChannel: Received message from WebSocket:", data);
             switch (data.type) {
                 case 'message_history':
@@ -117,7 +120,7 @@ export default function ChatChannel({ channel, onSyncStatusChange, syncCounter }
         }
 
         // Create new WebSocket service instance
-        wsService.current = createWebSocketService(channel.id, onMessageReceived);
+        wsService.current = createWebSocketService(channel.id, handleNewMessage);
         wsService.current.connect();
 
         // Cleanup on unmount
@@ -126,24 +129,27 @@ export default function ChatChannel({ channel, onSyncStatusChange, syncCounter }
                 wsService.current.disconnect();
                 wsService.current = null;
             }
-            setMessages([]); // Clear messages when channel changes/unmounts
         };
-    }, [channel?.id]); // Re-run effect when channel ID changes
+    }, [channel, onSyncStatusChange]);
 
     useEffect(() => {
         if (syncCounter > 0 && wsService.current) {
+            console.log("Sync triggered by counter.");
             onSyncStatusChange('syncing');
+            hasFetchedHistory.current = false;
             wsService.current.sendMessage({ type: 'get_message_history', payload: { limit: 50, skip: 0 } });
         }
-    }, [syncCounter, wsService.current]); // Tambahkan wsService.current sebagai dependensi
+    }, [syncCounter, onSyncStatusChange]);
+
+    const scrollToBottom = () => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    };
 
     // Auto-scroll to bottom on new messages
     useEffect(() => {
-        if (scrollAreaRef.current) {
-            const viewport = scrollAreaRef.current.viewport;
-            if (viewport) {
-                viewport.scrollTop = viewport.scrollHeight;
-            }
+        if (messages.length > 0 && !hasFetchedHistory.current) {
+            scrollToBottom();
+            hasFetchedHistory.current = true;
         }
     }, [messages]);
 
@@ -225,7 +231,7 @@ export default function ChatChannel({ channel, onSyncStatusChange, syncCounter }
                 </div>
             )}
             <div className="flex-1 overflow-hidden">
-                <ScrollArea className="h-full p-4" viewportRef={scrollAreaRef}> {/* Tambahkan ref di sini */}
+                <ScrollArea className="h-full p-4" viewportRef={messagesEndRef}> {/* Tambahkan ref di sini */}
                     <div className="space-y-2">
                         {messages.length === 0 && !channel?.id ? (
                             <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground">
@@ -433,7 +439,7 @@ export default function ChatChannel({ channel, onSyncStatusChange, syncCounter }
                                                 <div className="grid grid-cols-4 gap-2 p-3">
                                                     {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((i) => (
                                                         <button key={i} className="rounded overflow-hidden border hover:border-primary" onClick={() => setMessage(message + `[Sticker${i}]`)}>
-                                                            <img src={`https://placekitten.com/60/60?image=${i}`} alt="sticker" className="w-12 h-12 object-cover" />
+                                                            <Image src={`https://placekitten.com/60/60?image=${i}`} alt="sticker" className="w-12 h-12 object-cover" width={60} height={60} />
                                                         </button>
                                                     ))}
                                                 </div>
@@ -444,7 +450,7 @@ export default function ChatChannel({ channel, onSyncStatusChange, syncCounter }
                                                 <div className="grid grid-cols-3 gap-2 p-3">
                                                     {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((i) => (
                                                         <button key={i} className="rounded overflow-hidden border hover:border-primary" onClick={() => setMessage(message + `[GIF${i}]`)}>
-                                                            <img src={`https://media.giphy.com/media/3oEjI6SIIHBdRxXI40/giphy.gif?${i}`} alt="gif" className="w-20 h-12 object-cover" />
+                                                            <Image src={`https://media.giphy.com/media/3oEjI6SIIHBdRxXI40/giphy.gif?${i}`} alt="gif" className="w-20 h-12 object-cover" width={80} height={48} />
                                                         </button>
                                                     ))}
                                                 </div>
@@ -463,6 +469,8 @@ export default function ChatChannel({ channel, onSyncStatusChange, syncCounter }
         </div>
     )
 }
+
+export default ChatChannel;
 
 
 

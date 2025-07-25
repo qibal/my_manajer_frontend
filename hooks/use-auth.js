@@ -19,23 +19,34 @@ export function AuthProvider({ children }) {
             if (token) {
                 try {
                     const decodedToken = jwtDecode(token);
+                    console.log('Decoded Token:', decodedToken);
+                    // Periksa apakah token sudah expired
+                    if (decodedToken.exp * 1000 < Date.now()) {
+                        console.warn('JWT token has expired. Removing token.');
+                        localStorage.removeItem('jwt_token');
+                        setUser(null);
+                        setLoading(false);
+                        return; // Penting: hentikan eksekusi lebih lanjut
+                    }
+
                     const userId = decodedToken.user_id;
 
                     const userData = await userService.getUserById(userId);
                     if (userData) {
-                        setUser({ isAuthenticated: true, ...userData });
+                        setUser({ ...userData }); // Hanya menyimpan data user, tanpa isAuthenticated
                         console.log('User data loaded from token and API:', userData);
                     } else {
-                        console.log('User data not found for ID from token. Logging out.');
+                        console.warn('User data not found for ID from token. Removing JWT token.');
                         localStorage.removeItem('jwt_token'); // Hapus dari localStorage
                         setUser(null);
                     }
                 } catch (error) {
-                    console.error('Error decoding token or fetching user data:', error);
+                    console.error('Error decoding token or fetching user data, removing JWT token:', error);
                     localStorage.removeItem('jwt_token'); // Hapus dari localStorage
                     setUser(null);
                 }
             } else {
+                console.log('No JWT token found in localStorage.');
                 setUser(null);
             }
             setLoading(false);
@@ -50,12 +61,16 @@ export function AuthProvider({ children }) {
         router.push('/login');
     };
 
-    const updateAuthState = (userData) => {
-        setUser({ isAuthenticated: true, ...userData });
+    // Fungsi untuk memperbarui state user, bukan lagi 'isAuthenticated' secara eksplisit
+    const setUserData = (userData) => {
+        setUser({ ...userData });
     };
 
+    // isAutenticated sekarang menjadi nilai yang di-derive
+    const isAuthenticated = !!user; // true jika user bukan null, false jika null
+
     return (
-        <AuthContext.Provider value={{ user, loading, logout, setUser: updateAuthState }}>
+        <AuthContext.Provider value={{ user, isAuthenticated, loading, logout, setUser: setUserData }}>
             {children}
         </AuthContext.Provider>
     );

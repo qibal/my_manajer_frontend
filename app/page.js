@@ -1,88 +1,67 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { LoginForm } from "@/components/organisms/LoginForm";
-import { useAuth } from '@/hooks/use-auth';
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/hooks/use-auth';
 import { Loader2 } from 'lucide-react';
-import authService from '@/service/auth_service';
-// Hapus import Cookies
+import LoginForm from '@/components/organisms/LoginForm'; // Import LoginForm
+import authService from '@/service/auth_service'; // Import authService
 
-export default function Home() {
-    const { user, loading, setUser } = useAuth();
+export default function RootPage() {
+    const { user, isAuthenticated, loading, setUser } = useAuth(); // Ambil isAuthenticated dan setUser
     const router = useRouter();
-    const [showNoBusinessMessage, setShowNoBusinessMessage] = useState(false);
 
-    const handleLogin = async (email, password) => {
+    // useEffect harus dipanggil di level teratas, sebelum kondisi apapun
+    useEffect(() => {
+        // Jangan lakukan redirect jika masih loading atau jika user tidak terautentikasi (karena akan render LoginForm)
+        if (loading || !isAuthenticated) return;
+
+        if (isAuthenticated) {
+            // Jika user memiliki businessIds, redirect ke business pertama, jika tidak redirect ke '/me'
+            router.push(user.businessIds?.length > 0 ? `/${user.businessIds[0]}` : '/me');
+        }
+    }, [user, isAuthenticated, loading, router]); // Tambahkan isAuthenticated ke dependency array
+
+    const handleLogin = async (emailOrUsername, password) => {
         try {
-            const response = await authService.login(email, password);
-            console.log('Login API Response:', response);
-
-            if (response.success && response.data?.token) {
-                localStorage.setItem('jwt_token', response.data.token); // Simpan ke localStorage
-                // Memperbarui setUser untuk menyimpan seluruh data pengguna yang diterima dari backend
-                setUser({ isAuthenticated: true, ...response.data });
-                console.log('Token saved to localStorage and user state updated.', response.data);
-
-                if (response.data.businessIds && response.data.businessIds.length > 0) {
-                    const firstBusinessId = response.data.businessIds[0];
-                    console.log(`Redirecting to business: ${firstBusinessId}`);
-                    // Redirect ke halaman bisnis, page di sana akan menangani redirect ke channel pertama
-                    router.push(`/${firstBusinessId}`);
-                } else {
-                    console.log('User has no associated businesses. Redirecting to @me.');
-                    // Untuk super_admin atau user tanpa bisnis, redirect ke halaman utama generik
-                    router.push('/@me');
-                }
-                return { success: true };
-            } else {
-                console.log('Login failed:', response.message);
-                setShowNoBusinessMessage(false); // Sembunyikan pesan jika login gagal
-                return { success: false, message: response.message || 'Login failed' };
-            }
-        } catch (err) {
-            console.error('Login error:', err);
-            setShowNoBusinessMessage(false); // Sembunyikan pesan jika terjadi error
-            return { success: false, message: err.response?.data?.message || 'Terjadi kesalahan saat login.' };
+            const response = await authService.login(emailOrUsername, password);
+            console.log("🚀 ~ handleLogin ~ response:", response)
+            // Simpan token JWT ke localStorage
+            localStorage.setItem('jwt_token', response.data.token); // Perbaikan: Ambil token dari response.data.token
+            // Update state user di context dengan data user dari response
+            setUser(response.data); // Perbaikan: Panggil setUser dengan response.data
+            return { success: true };
+        } catch (error) {
+            console.error("Login error:", error);
+            return { success: false, message: error.message || "Login failed" };
         }
     };
 
-    useEffect(() => {
-        if (!loading && user?.isAuthenticated) {
-            // Cek apakah user memiliki businessIds yang sudah dimuat
-            if (user.businessIds && user.businessIds.length > 0) {
-                const firstBusinessId = user.businessIds[0];
-                console.log(`User already authenticated. Redirecting to business: ${firstBusinessId}`);
-                router.push(`/${firstBusinessId}`);
-            } else if (user.businessIds && user.businessIds.length === 0) {
-                console.log('User already authenticated but has no associated businesses. Redirecting to @me.');
-                router.push('/@me');
-            }
-            // Hapus else block karena logic sudah tercakup, dan untuk menghindari loop redirect yang tidak perlu
-        }
-    }, [user, loading, router]);
-
-    if (loading || (!loading && user?.isAuthenticated)) { // Tampilkan loading jika sedang memuat ATAU jika sudah diautentikasi (karena akan redirect)
+    // Jika loading, tampilkan indikator loading
+    if (loading) {
         return (
-            <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10">
-                <Loader2 className="h-8 w-8 animate-spin text-gray-500" />
-                <p className="ml-2 text-gray-600">Memuat...</p>
+            <div className="flex min-h-svh w-full items-center justify-center bg-background">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                <p className="ml-2 text-muted-foreground">Memuat...</p>
             </div>
         );
     }
 
-    return (
-        <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10">
-            <div className="w-full max-w-sm">
-                {showNoBusinessMessage ? (
-                    <div className="text-center p-4 bg-yellow-100 border border-yellow-400 text-yellow-700 rounded-md" role="alert">
-                        <p className="font-bold">Informasi</p>
-                        <p>Anda belum terdaftar atau memiliki akses ke bisnis manapun. Silakan hubungi administrator Anda untuk mendapatkan akses.</p>
-                    </div>
-                ) : (
-                    <LoginForm onLogin={handleLogin} />
-                )}
+    // Jika user tidak terautentikasi, tampilkan LoginForm
+    if (!isAuthenticated) {
+        return (
+            <div className="flex min-h-svh w-full items-center justify-center bg-background">
+                <LoginForm onLogin={handleLogin} />
             </div>
+        );
+    }
+
+    // Ini hanya akan tercapai jika user terautentikasi dan redirect tidak segera terjadi (jarang)
+    // Tampilkan loading indicator sementara proses redirect berlangsung
+    return (
+        <div className="flex min-h-svh w-full items-center justify-center bg-background">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            <p className="ml-2 text-muted-foreground">Memuat...</p>
         </div>
     );
 }

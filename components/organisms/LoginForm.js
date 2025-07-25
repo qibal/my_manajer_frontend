@@ -23,7 +23,7 @@ import {
     FormMessage,
 } from '@/components/Shadcn/form'; // Import Shadcn Form components
 
-export function LoginForm({
+export default function LoginForm({
     className,
     onLogin, // Tambahkan onLogin ke props
     ...props
