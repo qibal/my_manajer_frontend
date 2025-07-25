@@ -6,7 +6,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import authService from '@/service/auth_service';
-import Cookies from 'js-cookie';
+// Hapus import Cookies
 
 export default function Home() {
     const { user, loading, setUser } = useAuth();
@@ -19,10 +19,10 @@ export default function Home() {
             console.log('Login API Response:', response);
 
             if (response.success && response.data?.token) {
-                Cookies.set('jwt_token', response.data.token, { expires: 7, path: '/' }); // Tambahkan path: '/'
+                localStorage.setItem('jwt_token', response.data.token); // Simpan ke localStorage
                 // Memperbarui setUser untuk menyimpan seluruh data pengguna yang diterima dari backend
                 setUser({ isAuthenticated: true, ...response.data });
-                console.log('Token saved to cookies and user state updated.', response.data);
+                console.log('Token saved to localStorage and user state updated.', response.data);
 
                 if (response.data.businessIds && response.data.businessIds.length > 0) {
                     const firstBusinessId = response.data.businessIds[0];

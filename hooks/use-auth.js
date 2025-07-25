@@ -1,10 +1,10 @@
 'use client'
 
 import { useState, useEffect, createContext, useContext } from 'react';
-import Cookies from 'js-cookie';
+// Hapus import Cookies
 import { useRouter } from 'next/navigation';
-import { jwtDecode } from 'jwt-decode'; // Import jwtDecode
-import userService from '@/service/user_service'; // Import userService
+import { jwtDecode } from 'jwt-decode';
+import userService from '@/service/user_service';
 
 const AuthContext = createContext(null);
 
@@ -14,25 +14,25 @@ export function AuthProvider({ children }) {
     const router = useRouter();
 
     useEffect(() => {
-        const loadUserFromCookies = async () => {
-            const token = Cookies.get('jwt_token');
+        const loadUserFromToken = async () => {
+            const token = localStorage.getItem('jwt_token'); // Mengambil dari localStorage
             if (token) {
                 try {
                     const decodedToken = jwtDecode(token);
-                    const userId = decodedToken.user_id; // Pastikan ini sesuai dengan key di token Anda
+                    const userId = decodedToken.user_id;
 
                     const userData = await userService.getUserById(userId);
                     if (userData) {
                         setUser({ isAuthenticated: true, ...userData });
-                        console.log('User data loaded from cookies and API:', userData);
+                        console.log('User data loaded from token and API:', userData);
                     } else {
                         console.log('User data not found for ID from token. Logging out.');
-                        Cookies.remove('jwt_token');
+                        localStorage.removeItem('jwt_token'); // Hapus dari localStorage
                         setUser(null);
                     }
                 } catch (error) {
                     console.error('Error decoding token or fetching user data:', error);
-                    Cookies.remove('jwt_token');
+                    localStorage.removeItem('jwt_token'); // Hapus dari localStorage
                     setUser(null);
                 }
             } else {
@@ -41,16 +41,15 @@ export function AuthProvider({ children }) {
             setLoading(false);
         };
 
-        loadUserFromCookies();
+        loadUserFromToken();
     }, []);
 
     const logout = () => {
-        Cookies.remove('jwt_token', { path: '/' }); // Tambahkan path: '/'
+        localStorage.removeItem('jwt_token'); // Hapus dari localStorage
         setUser(null);
         router.push('/login');
     };
 
-    // Fungsi untuk memperbarui status pengguna secara manual setelah login di page.js
     const updateAuthState = (userData) => {
         setUser({ isAuthenticated: true, ...userData });
     };
