@@ -56,7 +56,7 @@ export default function LoginForm({
 
     return (
         <div className={cn('flex flex-col gap-6', className)} {...props}>
-            <Card>
+            <Card className="w-[300px]">
                 <CardHeader>
                     <CardTitle>Login to your account</CardTitle>
                     <CardDescription>
@@ -92,12 +92,12 @@ export default function LoginForm({
                                     <FormItem>
                                         <div className="flex items-center">
                                             <FormLabel>Password</FormLabel>
-                                            <a
+                                            {/* <a
                                                 href="#"
                                                 className="ml-auto inline-block text-sm underline-offset-4 hover:underline"
                                             >
                                                 Forgot your password?
-                                            </a>
+                                            </a> */}
                                         </div>
                                         <FormControl>
                                             <Input

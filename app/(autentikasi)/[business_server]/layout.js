@@ -5,9 +5,8 @@ import { useState, useEffect } from "react"
 import { useParams, useRouter } from 'next/navigation'
 import { TooltipProvider } from "@/components/Shadcn/tooltip"
 import BusinessServers from "@/components/organisms/Discord/BusinessServers"
-import businessService from "@/service/business_service"
-import channelService from "@/service/channel_service"
 import React from "react"
+import { useBusinessData } from "@/hooks/use-business-data"
 
 export default function BusinessLayout({ children }) {
   const router = useRouter()
@@ -16,64 +15,25 @@ export default function BusinessLayout({ children }) {
   console.log("BusinessLayout: Initial params", params);
   console.log("BusinessLayout: Initial business_server", business_server);
 
-  const [businessList, setBusinessList] = useState(null); // Initialize as null
-  const [channels, setChannels] = useState(null); // Initialize as null
-  const [selectedBusiness, setSelectedBusiness] = useState(business_server || null);
-
-  useEffect(() => {
-    businessService.getAll().then((res) => {
-      console.log("BusinessLayout: businessService.getAll() response", res);
-      if (res && res.data) {
-        setBusinessList(res.data); // This will set to empty array if no data, or populated array
-        console.log("BusinessLayout: Updated businessList", res.data);
-
-        if (res.data.length > 0) {
-          let initialBusinessToSelect = null;
-          if (business_server && res.data.some(b => b.id === business_server)) {
-            initialBusinessToSelect = business_server;
-          } else {
-            initialBusinessToSelect = res.data[0].id;
-            router.replace(`/${res.data[0].id}`);
-          }
-          setSelectedBusiness(initialBusinessToSelect);
-          console.log("BusinessLayout: Updated selectedBusiness", initialBusinessToSelect);
-        } else {
-          setSelectedBusiness(null); // No business to select if list is empty
-          console.log("BusinessLayout: No businesses found, selectedBusiness set to null.");
-        }
-      } else {
-        setBusinessList([]); // Ensure it's an empty array even on invalid response
-        setSelectedBusiness(null);
-        console.error("Business service returned invalid data or no data.");
-        // Redirect ke /me jika tidak ada bisnis
-        router.push('/me');
-      }
-    }).catch(error => {
-      console.error("Error fetching businesses:", error);
-      setBusinessList([]); // Ensure it's an empty array on error
-      setSelectedBusiness(null);
-      // Redirect ke /me jika terjadi error
-      router.push('/me');
-    });
-  }, [business_server, router]);
+  const { businessList, channels, selectedBusiness, setSelectedBusiness, loading } = useBusinessData(business_server);
 
   useEffect(() => {
     if (selectedBusiness) {
-      channelService.getByBusinessId(selectedBusiness).then((res) => {
-        console.log("BusinessLayout: channelService.getByBusinessId() response for selectedBusiness", selectedBusiness, res);
-        if (res && res.data) {
-          setChannels(res.data); // This will set to empty array if no data, or populated array
-          console.log("BusinessLayout: Updated channels for selectedBusiness", selectedBusiness, res.data);
-        } else {
-          setChannels([]);
-          console.log("BusinessLayout: No channels found for selectedBusiness", selectedBusiness);
-        }
-      }).catch(error => {
-        console.error("Error fetching channels for selectedBusiness", selectedBusiness, error);
-        setChannels([]);
-      });
+      // channelService.getByBusinessId(selectedBusiness).then((res) => {
+      //   console.log("BusinessLayout: channelService.getByBusinessId() response for selectedBusiness", selectedBusiness, res);
+      //   if (res && res.data) {
+      //     setChannels(res.data); // This will set to empty array if no data, or populated array
+      //     console.log("BusinessLayout: Updated channels for selectedBusiness", selectedBusiness, res.data);
+      //   } else {
+      //     setChannels([]);
+      //     console.log("BusinessLayout: No channels found for selectedBusiness", selectedBusiness);
+      //   }
+      // }).catch(error => {
+      //   console.error("Error fetching channels for selectedBusiness", selectedBusiness, error);
+      //   setChannels([]);
+      // });
     } else {
-        setChannels([]); // Clear channels if no business is selected or if selectedBusiness becomes null
+        // setChannels([]); // Clear channels if no business is selected or if selectedBusiness becomes null
         console.log("BusinessLayout: No selected business, clearing channels.");
     }
   }, [selectedBusiness]);
@@ -89,16 +49,20 @@ export default function BusinessLayout({ children }) {
     }
   }
 
-  if (businessList === null || channels === null) {
+  if (loading) {
     return (
       <TooltipProvider>
         <div className="flex h-screen bg-background overflow-hidden">
           <BusinessServers
             businessData={businessList || []}
             selectedBusiness={selectedBusiness}
-            setSelectedBusiness={handleSetSelectedBusiness}
+            setSelectedBusiness={setSelectedBusiness}
             onBusinessAdded={(newBusiness) => {
-              setBusinessList((prevList) => [...prevList, newBusiness]);
+              // Asumsi newBusiness memiliki ID yang sudah valid
+              setSelectedBusiness(newBusiness.id);
+              // Kita tidak perlu memanipulasi businessList secara manual di sini,
+              // karena useBusinessData akan mengambil ulang data secara otomatis (atau bisa ditambahkan logika optimis update jika diperlukan)
+              // Untuk saat ini, kita akan redirect dan biarkan hook memuat ulang.
               router.push(`/${newBusiness.id}`);
             }}
             channels={channels || []}
@@ -111,15 +75,21 @@ export default function BusinessLayout({ children }) {
     );
   }
 
+  if (!selectedBusiness && businessList && businessList.length === 0) {
+    router.push('/me');
+    return null;
+  }
+
   return (
     <TooltipProvider>
       <div className="flex h-screen bg-background overflow-hidden">
         <BusinessServers
           businessData={businessList}
           selectedBusiness={selectedBusiness}
-          setSelectedBusiness={handleSetSelectedBusiness}
+          setSelectedBusiness={setSelectedBusiness}
           onBusinessAdded={(newBusiness) => {
-            setBusinessList((prevList) => [...prevList, newBusiness]);
+            // Asumsi newBusiness memiliki ID yang sudah valid
+            setSelectedBusiness(newBusiness.id);
             router.push(`/${newBusiness.id}`);
           }}
           channels={channels}

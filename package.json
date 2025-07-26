@@ -77,7 +77,6 @@
     "tailwind-merge": "^3.3.1",
     "tiptap": "^1.32.2",
     "vaul": "^1.1.2",
-    "websocket": "^1.0.35",
     "zod": "^4.0.5"
   },
   "devDependencies": {

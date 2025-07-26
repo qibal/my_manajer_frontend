@@ -82,9 +82,11 @@ import businessData from "@/discord_data_dummy/businesses.json";
 import { getChannelIcon } from "@/lib/utils";
 import channelCategoryService from "@/service/channel_category_service";
 import channelService from "@/service/channel_service";
+import databaseService from "@/service/database_service"; // Import databaseService
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { useAuth } from '@/hooks/use-auth'; // Import useAuth
 
 const formSchema = z.object({
     name: z.string().min(1, { message: "Nama channel wajib diisi." }),
@@ -97,7 +99,7 @@ const categoryFormSchema = z.object({
 });
 
 // Komponen terpisah untuk modal Create Channel
-function CreateChannelDialog({ businessId, channelCategories, initialCategoryId, onClose, onChannelOrCategoryCreated }) {
+function CreateChannelDialog({ businessId, channelCategories, initialCategoryId, onClose, onChannelOrCategoryCreated, authorId, fetchChannelCategories }) {
     const form = useForm({
         resolver: zodResolver(formSchema),
         defaultValues: {
@@ -107,6 +109,9 @@ function CreateChannelDialog({ businessId, channelCategories, initialCategoryId,
         },
         mode: "onChange", // Tambahkan ini
     });
+
+    // State untuk mengelola tampilan dialog kategori baru di dalam dialog channel
+    const [isNestedCreateCategoryDialogOpen, setIsNestedCreateCategoryDialogOpen] = useState(false);
 
     useEffect(() => {
         form.setValue("categoryId", initialCategoryId || null); // Ubah menjadi null
@@ -122,10 +127,27 @@ function CreateChannelDialog({ businessId, channelCategories, initialCategoryId,
             }
             const newChannel = await channelService.create(payload);
             console.log("Channel baru berhasil ditambahkan:", newChannel);
+
+            // Jika tipe channel adalah 'databases', buat juga database baru
+            if (newChannel && newChannel.data && newChannel.data.type === "databases") {
+                try {
+                    const newDatabase = await databaseService.createDatabase({
+                        title: newChannel.data.name,
+                        channelId: newChannel.data.id,
+                        authorId: authorId, // Gunakan authorId dari prop
+                        columns: [{ name: "Nama", type: "text", order: 1 }] // Kolom default
+                    });
+                    console.log("Database baru berhasil ditambahkan:", newDatabase);
+                } catch (dbError) {
+                    console.error("Gagal membuat database untuk channel:", dbError);
+                    // Opsional: Lakukan rollback channel atau log error secara terpisah
+                }
+            }
+
             onClose(); // Tutup dialog
             form.reset(); // Reset form
             if (onChannelOrCategoryCreated) {
-                onChannelOrCategoryCreated();
+                onChannelOrCategoryCreated(); // Panggil callback untuk re-fetch data
             }
         } catch (error) {
             console.error("Gagal menambahkan channel:", error);
@@ -214,11 +236,23 @@ function CreateChannelDialog({ businessId, channelCategories, initialCategoryId,
                                 ) : (
                                     <div className="text-muted-foreground text-sm flex items-center gap-2">
                                         Belum ada kategori. 
-                                        <DialogTrigger asChild>
-                                            <Button variant="link" className="p-0 h-auto text-primary">
-                                                Buat kategori baru?
-                                            </Button>
-                                        </DialogTrigger>
+                                        <Dialog open={isNestedCreateCategoryDialogOpen} onOpenChange={setIsNestedCreateCategoryDialogOpen}>
+                                            <DialogTrigger asChild>
+                                                <Button variant="link" className="p-0 h-auto text-primary">
+                                                    Buat kategori baru?
+                                                </Button>
+                                            </DialogTrigger>
+                                            <CreateCategoryDialog
+                                                businessId={businessId}
+                                                fetchChannelCategories={fetchChannelCategories}
+                                                onClose={() => setIsNestedCreateCategoryDialogOpen(false)}
+                                                onChannelOrCategoryCreated={() => {
+                                                    setIsNestedCreateCategoryDialogOpen(false); // Tutup dialog kategori
+                                                    onChannelOrCategoryCreated(); // Memicu refresh di parent (ChannelSidebar)
+                                                    fetchChannelCategories(); // Memicu refresh kategori di dialog channel saat ini
+                                                }}
+                                            />
+                                        </Dialog>
                                     </div>
                                 )}
                                 <FormMessage />
@@ -257,7 +291,7 @@ function CreateCategoryDialog({ businessId, fetchChannelCategories, onClose, onC
             onClose(); // Tutup dialog
             categoryForm.reset(); // Reset form
             if (onChannelOrCategoryCreated) {
-                onChannelOrCategoryCreated();
+                onChannelOrCategoryCreated(); // Panggil callback untuk re-fetch data
             }
         } catch (error) {
             console.error("Gagal menambahkan kategori channel:", error);
@@ -307,25 +341,27 @@ function CreateCategoryDialog({ businessId, fetchChannelCategories, onClose, onC
 
 export default function ChannelSidebar({ selectedBusiness, selectedChannel, setSelectedChannel, groupedChannels, channels, businessList, onChannelOrCategoryCreated }) {
     console.log("ChannelSidebar: businessList prop received", businessList);
-    const [channelCategories, setChannelCategories] = useState([]);
+    // Ganti channelCategories menjadi state lokal yang akan diperbarui
+    const [allChannelCategories, setAllChannelCategories] = useState([]);
     const [isCreateChannelDialogOpen, setIsCreateChannelDialogOpen] = useState(false);
     const [isCreateCategoryDialogOpen, setIsCreateCategoryDialogOpen] = useState(false);
-    const router = useRouter(); // Initialize useRouter
+    // const router = useRouter(); // Initialize useRouter
 
     const [categories, setCategories] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const [loadingCategories, setLoadingCategories] = useState(true); // Ganti loading menjadi loadingCategories
+    const { user } = useAuth(); // Ambil user dari useAuth
 
     const fetchChannelCategories = useCallback(async () => {
         if (!selectedBusiness) return;
-        setLoading(true);
+        setLoadingCategories(true); // Gunakan loadingCategories
         try {
             const data = await channelCategoryService.getByBusinessId(selectedBusiness);
-            setCategories(data.data || []);
+            setAllChannelCategories(data.data || []); // Perbarui state allChannelCategories
         } catch (error) {
             console.error("Failed to fetch channel categories:", error);
-            setCategories([]);
+            setAllChannelCategories([]);
         } finally {
-            setLoading(false);
+            setLoadingCategories(false);
         }
     }, [selectedBusiness]);
 
@@ -350,76 +386,76 @@ export default function ChannelSidebar({ selectedBusiness, selectedChannel, setS
                 <div className="p-4 border-b">
                     <div className="flex items-center justify-between">
                         <h2 className="font-semibold text-lg">{currentBusinessName}</h2>
-                        <Popover>
-                            <PopoverTrigger asChild>
-                                <Button variant="ghost" size="icon" className="w-6 h-6">
-                                    <Settings className="w-4 h-4" />
-                                </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-64 p-2">
-                                <div className="flex flex-col space-y-1">
-                                    <Button variant="ghost" className="w-full justify-start font-normal">
-                                        <UserPlus className="mr-2 h-4 w-4" />
-                                        Invite People
+                        {user?.roles?.system?.includes('super_admin') && (
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="w-6 h-6">
+                                        <Settings className="w-4 h-4" />
                                     </Button>
-                                    <Link href={`/business_settings/${selectedBusiness}`} passHref>
-                                        <Button variant="ghost" className="w-full justify-start font-normal">
-                                            <Cog className="mr-2 h-4 w-4" />
-                                            Business Settings
-                                        </Button>
-                                    </Link>
-                                    <Dialog open={isCreateChannelDialogOpen} onOpenChange={setIsCreateChannelDialogOpen}>
-                                        <DialogTrigger asChild>
-                                            <Button
-                                                variant="ghost"
-                                                className="w-full justify-start font-normal"
-                                            >
-                                                <Hash className="mr-2 h-4 w-4" />
-                                                Create Channel
+                                </PopoverTrigger>
+                                <PopoverContent className="w-64 p-2">
+                                    <div className="flex flex-col space-y-1">
+                                        <Link href={`/business_settings/${selectedBusiness}`} passHref>
+                                            <Button variant="ghost" className="w-full justify-start font-normal">
+                                                <Cog className="mr-2 h-4 w-4" />
+                                                Business Settings
                                             </Button>
-                                        </DialogTrigger>
-                                        <CreateChannelDialog
-                                            businessId={selectedBusiness}
-                                            channelCategories={channelCategories}
-                                            initialCategoryId={null}
-                                            onClose={() => setIsCreateChannelDialogOpen(false)}
-                                            onChannelOrCategoryCreated={onChannelOrCategoryCreated}
-                                        />
-                                    </Dialog>
-                                    <Dialog open={isCreateCategoryDialogOpen} onOpenChange={setIsCreateCategoryDialogOpen}>
-                                        <DialogTrigger asChild>
-                                            <Button
-                                                variant="ghost"
-                                                className="w-full justify-start font-normal"
-                                            >
-                                                <ListTree className="mr-2 h-4 w-4" />
-                                                Create Category
-                                            </Button>
-                                        </DialogTrigger>
-                                        <CreateCategoryDialog
-                                            businessId={selectedBusiness}
-                                            fetchChannelCategories={fetchChannelCategories}
-                                            onClose={() => setIsCreateCategoryDialogOpen(false)}
-                                            onChannelOrCategoryCreated={onChannelOrCategoryCreated}
-                                        />
-                                    </Dialog>
-                                    <Button variant="ghost" className="w-full justify-start font-normal">
-                                        <Bell className="mr-2 h-4 w-4" />
-                                        Notification Settings
-                                    </Button>
-                                </div>
-                            </PopoverContent>
-                        </Popover>
+                                        </Link>
+                                        <Dialog open={isCreateChannelDialogOpen} onOpenChange={setIsCreateChannelDialogOpen}>
+                                            <DialogTrigger asChild>
+                                                <Button
+                                                    variant="ghost"
+                                                    className="w-full justify-start font-normal"
+                                                >
+                                                    <Hash className="mr-2 h-4 w-4" />
+                                                    Create Channel
+                                                </Button>
+                                            </DialogTrigger>
+                                            <CreateChannelDialog
+                                                businessId={selectedBusiness}
+                                                channelCategories={allChannelCategories} // Teruskan state kategori
+                                                initialCategoryId={null}
+                                                onClose={() => setIsCreateChannelDialogOpen(false)}
+                                                onChannelOrCategoryCreated={onChannelOrCategoryCreated}
+                                                authorId={user?.id}
+                                                fetchChannelCategories={fetchChannelCategories} // Teruskan fungsi fetch
+                                            />
+                                        </Dialog>
+                                        <Dialog open={isCreateCategoryDialogOpen} onOpenChange={setIsCreateCategoryDialogOpen}>
+                                            <DialogTrigger asChild>
+                                                <Button
+                                                    variant="ghost"
+                                                    className="w-full justify-start font-normal"
+                                                >
+                                                    <ListTree className="mr-2 h-4 w-4" />
+                                                    Create Category
+                                                </Button>
+                                            </DialogTrigger>
+                                            <CreateCategoryDialog
+                                                businessId={selectedBusiness}
+                                                fetchChannelCategories={fetchChannelCategories}
+                                                onClose={() => setIsCreateCategoryDialogOpen(false)}
+                                                onChannelOrCategoryCreated={onChannelOrCategoryCreated}
+                                            />
+                                        </Dialog>
+                                        {/* <Button variant="ghost" className="w-full justify-start font-normal">
+                                            <Bell className="mr-2 h-4 w-4" />
+                                            Notification Settings
+                                        </Button> */}
+                                    </div>
+                                </PopoverContent>
+                            </Popover>
+                        )}
                     </div>
                 </div>
 
                 {/* Search */}
-                <div className="p-3">
+                {/* <div className="p-3">
                     <div className="relative">
                         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                         <Input placeholder="Search channels..." className="pl-9 h-8 bg-background/50" />
                     </div>
-                </div>
+                </div> */}
 
                 {/* Channels List */}
                 <ScrollArea className="flex-1 px-2">
@@ -439,10 +475,12 @@ export default function ChannelSidebar({ selectedBusiness, selectedChannel, setS
                                     </DialogTrigger>
                                     <CreateChannelDialog
                                         businessId={selectedBusiness}
-                                        channelCategories={channelCategories}
+                                        channelCategories={allChannelCategories} // Teruskan state kategori
                                         initialCategoryId={null}
                                         onClose={() => setIsCreateChannelDialogOpen(false)}
                                         onChannelOrCategoryCreated={onChannelOrCategoryCreated}
+                                        authorId={user?.id}
+                                        fetchChannelCategories={fetchChannelCategories} // Teruskan fungsi fetch
                                     />
                                 </Dialog>
                             </div>
@@ -452,9 +490,9 @@ export default function ChannelSidebar({ selectedBusiness, selectedChannel, setS
                                     <div className="flex items-center justify-between text-xs font-bold uppercase text-muted-foreground hover:text-foreground px-1">
                                         <CollapsibleTrigger className="flex items-center flex-1 gap-1 py-1">
                                             <ChevronDown className="h-3 w-3 transition-transform duration-200 data-[state=closed]:-rotate-90" />
-                                            <span className="flex-1 text-left">{category === '__NO_CATEGORY__' ? '' : category}</span>
+                                            <span className="flex-1 text-left font-medium text-sm">{category === '__NO_CATEGORY__' ? '' : category}</span>
                                         </CollapsibleTrigger>
-                                        {category !== '__NO_CATEGORY__' && (
+                                        {category !== '__NO_CATEGORY__' && user?.roles?.system?.includes('super_admin') && (
                                             <Tooltip>
                                                 <TooltipTrigger asChild>
                                                     <Dialog>
@@ -469,10 +507,12 @@ export default function ChannelSidebar({ selectedBusiness, selectedChannel, setS
                                                         </DialogTrigger>
                                                         <CreateChannelDialog
                                                             businessId={selectedBusiness}
-                                                            channelCategories={channelCategories}
+                                                            channelCategories={allChannelCategories} // Teruskan state kategori
                                                             initialCategoryId={channelsInCategory[0]?.categoryId || null}
                                                             onClose={() => setIsCreateChannelDialogOpen(false)}
                                                             onChannelOrCategoryCreated={onChannelOrCategoryCreated}
+                                                            authorId={user?.id}
+                                                            fetchChannelCategories={fetchChannelCategories} // Teruskan fungsi fetch
                                                         />
                                                     </Dialog>
                                                 </TooltipTrigger>
@@ -496,16 +536,18 @@ export default function ChannelSidebar({ selectedBusiness, selectedChannel, setS
                                                 >
                                                     <Icon className="w-5 h-5 mx-1" />
                                                     <span className="truncate flex-1 text-left font-medium text-sm">{channel.name}</span>
-                                                    <div className={`flex items-center ${isActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
-                                                        <Tooltip>
-                                                            <TooltipTrigger asChild>
-                                                                <Link href={`/${selectedBusiness}/settings/channel/${channel.id}`} passHref>
-                                                                    <Button variant="ghost" size="icon" className="h-6 w-6 hover:bg-muted"><Cog className="h-4 w-4" /></Button>
-                                                                </Link>
-                                                            </TooltipTrigger>
-                                                            <TooltipContent side="top" className="p-1.5 text-xs"><p>Edit Channel</p></TooltipContent>
-                                                        </Tooltip>
-                                                    </div>
+                                                    {user?.roles?.system?.includes('super_admin') && (
+                                                        <div className={`flex items-center ${isActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+                                                            <Tooltip>
+                                                                <TooltipTrigger asChild>
+                                                                    <Link href={`/${selectedBusiness}/settings/channel/${channel.id}`} passHref>
+                                                                        <Button variant="ghost" size="icon" className="h-6 w-6 hover:bg-muted"><Cog className="h-4 w-4" /></Button>
+                                                                    </Link>
+                                                                </TooltipTrigger>
+                                                                <TooltipContent side="top" className="p-1.5 text-xs"><p>Edit Channel</p></TooltipContent>
+                                                            </Tooltip>
+                                                        </div>
+                                                    )}
                                                 </Link>
                                             );
                                         })}

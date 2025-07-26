@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import Image from 'next/image';
 
 import userService from '@/service/user_service';
+import roleService from '@/service/role_service'; // Import role service
 
 // Shadcn UI Components
 import { Button } from '@/components/Shadcn/button';
@@ -25,7 +26,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuTrigger,
 } from '@/components/Shadcn/dropdown-menu';
 import {
@@ -61,8 +61,6 @@ import { Badge } from '@/components/Shadcn/badge';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/Shadcn/avatar"
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/Shadcn/popover';
 
-
-// Skema validasi untuk form create user
 const createUserFormSchema = z.object({
     username: z.string().min(3, { message: 'Username minimal 3 karakter.' }),
     email: z.string().email({ message: 'Email tidak valid.' }).optional().or(z.literal('')),
@@ -70,19 +68,14 @@ const createUserFormSchema = z.object({
         .refine(value => /[a-z]/.test(value), { message: 'Password harus mengandung huruf kecil.' })
         .refine(value => /[A-Z]/.test(value), { message: 'Password harus mengandung huruf besar.' })
         .refine(value => /[0-9]/.test(value), { message: 'Password harus mengandung angka.' }),
-    avatar: z.any().optional(),
 });
 
-// Skema validasi untuk form edit user
 const editUserFormSchema = z.object({
     username: z.string().min(3, { message: 'Username minimal 3 karakter.' }),
     email: z.string().email({ message: 'Email tidak valid.' }).optional().or(z.literal('')),
     isActive: z.boolean(),
-    avatar: z.any().optional(),
 });
 
-
-// Komponen untuk validasi password
 const PasswordStrengthIndicator = ({ password }) => {
     const checks = useMemo(() => ({
         length: password.length >= 8,
@@ -96,117 +89,116 @@ const PasswordStrengthIndicator = ({ password }) => {
 
     return (
         <div className="mt-2">
-            <div className="flex w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+            <div className="flex w-full h-2 bg-muted rounded-full overflow-hidden">
                 <div className={`transition-all duration-300 ${strengthColor}`} style={{ width: `${(strength / 4) * 100}%` }}></div>
             </div>
             <ul className="text-xs text-muted-foreground mt-2 space-y-1">
-                <li className={checks.length ? 'text-green-600' : ''}>Minimal 8 karakter</li>
-                <li className={checks.lowercase ? 'text-green-600' : ''}>Satu huruf kecil</li>
-                <li className={checks.uppercase ? 'text-green-600' : ''}>Satu huruf besar</li>
-                <li className={checks.digit ? 'text-green-600' : ''}>Satu angka</li>
+                <li className={checks.length ? 'text-primary' : ''}>Minimal 8 karakter</li>
+                <li className={checks.lowercase ? 'text-primary' : ''}>Satu huruf kecil</li>
+                <li className={checks.uppercase ? 'text-primary' : ''}>Satu huruf besar</li>
+                <li className={checks.digit ? 'text-primary' : ''}>Satu angka</li>
             </ul>
         </div>
     );
 };
 
-
 export default function UserManagementContent() {
     const [users, setUsers] = useState([]);
+    const [roles, setRoles] = useState([]); // State for roles
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     
-    // States for dialogs
     const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     
     const [selectedUser, setSelectedUser] = useState(null);
-    const [avatarPreview, setAvatarPreview] = useState(null);
 
-    // Form hooks
     const createForm = useForm({
         resolver: zodResolver(createUserFormSchema),
-        defaultValues: { username: '', email: '', password: '', avatar: null },
+        defaultValues: { username: '', email: '', password: '' },
     });
     
     const editForm = useForm({
         resolver: zodResolver(editUserFormSchema),
-        defaultValues: { username: '', email: '', isActive: true, avatar: null },
+        defaultValues: { username: '', email: '', isActive: true },
     });
     
     const passwordToWatch = createForm.watch('password', '');
 
-    const fetchUsers = async () => {
+    const fetchData = async () => {
         try {
             setLoading(true);
-            const data = await userService.getUsers();
-            setUsers(data);
+            const [usersData, rolesData] = await Promise.all([
+                userService.getUsers(),
+                roleService.getAll()
+            ]);
+            setUsers(usersData || []);
+            setRoles(rolesData || []);
             setError(null);
         } catch (err) {
-            setError(err.message || 'Gagal memuat pengguna.');
+            setError(err.message || 'Gagal memuat data.');
+            toast.error("Gagal memuat data", { description: err.message });
         } finally {
             setLoading(false);
         }
     };
 
     useEffect(() => {
-        fetchUsers();
+        fetchData();
     }, []);
 
     const handleCreateUser = async (values) => {
-        try {
-            await userService.createUser({
-                username: values.username,
-                email: values.email,
-                password: values.password,
-                avatar: values.avatar,
-            });
-            toast.success('Pengguna berhasil dibuat!');
-            setIsCreateDialogOpen(false);
-            fetchUsers();
-        } catch (err) {
-            createForm.setError('root', { message: err.message || 'Gagal membuat pengguna.' });
-        }
+        const promise = userService.createUser(values);
+        toast.promise(promise, {
+            loading: 'Membuat pengguna baru...',
+            success: () => {
+                fetchData();
+                setIsCreateDialogOpen(false);
+                return 'Pengguna berhasil dibuat!';
+            },
+            error: (err) => `Error: ${err.message}`,
+        });
     };
 
     const handleUpdateUser = async (values) => {
         if (!selectedUser) return;
-        try {
-            await userService.updateUser(selectedUser.id, {
-                username: values.username,
-                email: values.email,
-                isActive: values.isActive,
-                avatar: values.avatar,
-            });
-            toast.success('Pengguna berhasil diperbarui!');
-            setIsEditDialogOpen(false);
-            fetchUsers();
-        } catch (err) {
-            editForm.setError('root', { message: err.message || 'Gagal memperbarui pengguna.' });
-        }
+        const promise = userService.updateUser(selectedUser.id, values);
+        toast.promise(promise, {
+            loading: 'Memperbarui pengguna...',
+            success: () => {
+                fetchData();
+                setIsEditDialogOpen(false);
+                return 'Pengguna berhasil diperbarui!';
+            },
+            error: (err) => `Error: ${err.message}`,
+        });
     };
 
     const handleDeleteUser = async () => {
         if (!selectedUser) return;
-        try {
-            await userService.deleteUser(selectedUser.id);
-            toast.success('Pengguna berhasil dihapus.');
-            setIsDeleteDialogOpen(false);
-            fetchUsers();
-        } catch (err) {
-            toast.error(err.message || 'Gagal menghapus pengguna.');
-            setIsDeleteDialogOpen(false);
-        }
+        const promise = userService.deleteUser(selectedUser.id);
+        toast.promise(promise, {
+            loading: `Menghapus ${selectedUser.username}...`,
+            success: () => {
+                fetchData();
+                setIsDeleteDialogOpen(false);
+                return 'Pengguna berhasil dihapus.';
+            },
+            error: (err) => `Error: ${err.message}`,
+        });
     };
 
     const handleToggleActive = async (user) => {
-        try {
-            await userService.updateUser(user.id, { isActive: !user.isActive });
-            toast.success(`Pengguna ${user.username} berhasil ${user.isActive ? 'nonaktifkan' : 'aktifkan'}!`);
-            fetchUsers();
-        } catch (err) {
-            toast.error(err.message || `Gagal ${user.isActive ? 'nonaktifkan' : 'aktifkan'} pengguna.`);
-        }
+        const promise = userService.updateUser(user.id, { isActive: !user.isActive });
+        toast.promise(promise, {
+            loading: `Mengubah status ${user.username}...`,
+            success: () => {
+                fetchData();
+                return `Status ${user.username} berhasil diubah.`;
+            },
+            error: (err) => `Error: ${err.message}`,
+        });
     };
 
     const openEditDialog = (user) => {
@@ -215,9 +207,7 @@ export default function UserManagementContent() {
             username: user.username,
             email: user.email,
             isActive: user.isActive,
-            avatar: null,
         });
-        setAvatarPreview(user.avatar || null);
         setIsEditDialogOpen(true);
     };
 
@@ -230,8 +220,8 @@ export default function UserManagementContent() {
         <div className="p-8">
             <div className="flex items-center justify-between mb-6">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-800">Manajemen Pengguna</h1>
-                    <p className="text-gray-600 mt-1">Kelola semua pengguna aplikasi Anda di sini.</p>
+                    <h1 className="text-2xl font-bold text-foreground">Manajemen Pengguna</h1>
+                    <p className="text-muted-foreground mt-1">Kelola semua pengguna aplikasi Anda di sini.</p>
                 </div>
                 <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
                     <DialogTrigger asChild>
@@ -249,49 +239,15 @@ export default function UserManagementContent() {
                         </DialogHeader>
                         <Form {...createForm}>
                             <form onSubmit={createForm.handleSubmit(handleCreateUser)} className="space-y-4">
-                               <FormField
-                                    control={createForm.control}
-                                    name="username"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Username</FormLabel>
-                                            <FormControl>
-                                                <Input placeholder="cth: john.doe" {...field} />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                <FormField
-                                    control={createForm.control}
-                                    name="email"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Email (Opsional)</FormLabel>
-                                            <FormControl>
-                                                <Input placeholder="cth: john.doe@example.com" {...field} />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                               <FormField
-                                    control={createForm.control}
-                                    name="password"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Password</FormLabel>
-                                            <FormControl>
-                                                <Input type="password" {...field} />
-                                            </FormControl>
-                                            <FormMessage />
-                                            <PasswordStrengthIndicator password={passwordToWatch} />
-                                        </FormItem>
-                                    )}
-                                />
-                                {createForm.formState.errors.root && (
-                                    <p className="text-sm font-medium text-destructive">{createForm.formState.errors.root.message}</p>
-                                )}
+                               <FormField control={createForm.control} name="username" render={({ field }) => (
+                                    <FormItem><FormLabel>Username</FormLabel><FormControl><Input placeholder="cth: john.doe" {...field} /></FormControl><FormMessage /></FormItem>
+                                )}/>
+                                <FormField control={createForm.control} name="email" render={({ field }) => (
+                                    <FormItem><FormLabel>Email (Opsional)</FormLabel><FormControl><Input placeholder="cth: john.doe@example.com" {...field} /></FormControl><FormMessage /></FormItem>
+                                )}/>
+                               <FormField control={createForm.control} name="password" render={({ field }) => (
+                                    <FormItem><FormLabel>Password</FormLabel><FormControl><Input type="password" {...field} /></FormControl><FormMessage /><PasswordStrengthIndicator password={passwordToWatch} /></FormItem>
+                                )}/>
                                 <DialogFooter>
                                     <Button type="submit" disabled={createForm.formState.isSubmitting}>
                                         {createForm.formState.isSubmitting ? 'Menyimpan...' : 'Simpan'}
@@ -304,81 +260,85 @@ export default function UserManagementContent() {
             </div>
 
             {loading && <p>Memuat data pengguna...</p>}
-            {error && <p className="text-red-500">{error}</p>}
+            {error && <p className="text-destructive">{error}</p>}
             {!loading && !error && (
                  <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead>Pengguna</TableHead>
-                            <TableHead>Role</TableHead>
+                            <TableHead>User</TableHead>
+                            <TableHead>Email</TableHead>
+                            <TableHead>Roles</TableHead>
                             <TableHead>Status</TableHead>
                             <TableHead>Tanggal Dibuat</TableHead>
-                            <TableHead><span className="sr-only">Aksi</span></TableHead>
+                            <TableHead className="text-right">Aksi</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {users.map((user) => (
-                            <TableRow key={user.id}>
-                                <TableCell>
-                                    <div className="flex items-center gap-3">
-                                        <div className="relative h-10 w-10">
-                                            <Image
-                                                src={user.profilePictureUrl || '/default-avatar.png'}
-                                                alt={`${user.name}'s profile picture`}
-                                                layout="fill"
-                                                objectFit="cover"
-                                                className="rounded-full"
-                                            />
+                        {users.map((user) => {
+                            const userRoles = Object.values(user.roles || {}).flat();
+                            const roleNames = userRoles.map(roleId => {
+                                const role = roles.find(r => r.id === roleId);
+                                return role ? role.name : roleId;
+                            });
+
+                            return (
+                                <TableRow key={user.id}>
+                                    <TableCell>
+                                        <div className="flex items-center gap-3">
+                                            <Avatar>
+                                                <AvatarImage src={user.avatar || ''} />
+                                                <AvatarFallback>{user.username.substring(0, 2).toUpperCase()}</AvatarFallback>
+                                            </Avatar>
+                                            <span className="font-medium">{user.username}</span>
                                         </div>
-                                        <div className="font-medium">{user.name}</div>
-                                    </div>
-                                </TableCell>
-                                <TableCell>{user.username}</TableCell>
-                                <TableCell className="hidden md:table-cell">{user.email}</TableCell>
-                                <TableCell>
-                                    {Object.entries(user.roles || {}).flatMap(([system, roleList]) => 
-                                        roleList.map(role => (
-                                            <Badge key={`${system}-${role}`} variant="secondary">{role}</Badge>
-                                        ))
-                                    )}
-                                </TableCell>
-                                <TableCell>
+                                    </TableCell>
+                                    <TableCell className="text-muted-foreground">{user.email || '-'}</TableCell>
+                                    <TableCell>
+                                        <div className="flex flex-wrap gap-1">
+                                            {roleNames.length > 0 ? (
+                                                roleNames.map(name => (
+                                                    <Badge key={name} variant="secondary">{name.replace(/_/g, ' ')}</Badge>
+                                                ))
+                                            ) : (
+                                                <span className="text-xs text-muted-foreground">No roles</span>
+                                            )}
+                                        </div>
+                                    </TableCell>
+                                    <TableCell>
                                     <Badge variant={user.isActive ? 'default' : 'destructive'}>
                                         {user.isActive ? 'Aktif' : 'Nonaktif'}
                                     </Badge>
                                 </TableCell>
-                                <TableCell>{formatIndonesianDate(user.createdAt)}</TableCell>
+                                <TableCell className="text-muted-foreground">{formatIndonesianDate(user.createdAt)}</TableCell>
                                 <TableCell className="text-right">
-                                    <Button variant="ghost" size="sm" onClick={() => openEditDialog(user)}>
-                                        <Edit className="h-4 w-4 mr-2" /> Edit
-                                    </Button>
-                                    <Popover>
-                                        <PopoverTrigger asChild>
-                                            <Button variant="ghost" className="h-8 w-8 p-0 ml-2">
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                            <Button variant="ghost" className="h-8 w-8 p-0">
                                                 <span className="sr-only">Buka menu</span>
                                                 <MoreHorizontal className="h-4 w-4" />
                                             </Button>
-                                        </PopoverTrigger>
-                                        <PopoverContent align="end" className="w-auto p-2">
-                                            <div className="flex flex-col space-y-1">
-                                                <Button variant="ghost" size="sm" className="justify-start" onClick={() => handleToggleActive(user)}>
-                                                    {user.isActive ? <PowerOff className="mr-2 h-4 w-4" /> : <Power className="mr-2 h-4 w-4" />}
-                                                    {user.isActive ? 'Nonaktifkan' : 'Aktifkan'}
-                                                </Button>
-                                                <Button variant="ghost" size="sm" className="justify-start text-red-600 hover:text-red-700" onClick={() => openDeleteDialog(user)}>
-                                                    <Trash2 className="mr-2 h-4 w-4" /> Hapus
-                                                </Button>
-                                            </div>
-                                        </PopoverContent>
-                                    </Popover>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end">
+                                             <DropdownMenuItem onClick={() => openEditDialog(user)}>
+                                                <Edit className="mr-2 h-4 w-4" /> Edit
+                                            </DropdownMenuItem>
+                                             <DropdownMenuItem onClick={() => handleToggleActive(user)}>
+                                                {user.isActive ? <PowerOff className="mr-2 h-4 w-4" /> : <Power className="mr-2 h-4 w-4" />}
+                                                {user.isActive ? 'Nonaktifkan' : 'Aktifkan'}
+                                            </DropdownMenuItem>
+                                             <DropdownMenuItem onClick={() => openDeleteDialog(user)} className="text-destructive focus:text-destructive-foreground">
+                                                <Trash2 className="mr-2 h-4 w-4" /> Hapus
+                                            </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
                                 </TableCell>
                             </TableRow>
-                        ))}
+                        );
+                    })}
                     </TableBody>
                 </Table>
             )}
 
-            {/* Edit User Dialog */}
             <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
                 <DialogContent>
                     <DialogHeader>
@@ -389,74 +349,18 @@ export default function UserManagementContent() {
                     </DialogHeader>
                      <Form {...editForm}>
                         <form onSubmit={editForm.handleSubmit(handleUpdateUser)} className="space-y-4">
-                           <FormField
-                                control={editForm.control}
-                                name="username"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Username</FormLabel>
-                                        <FormControl>
-                                            <Input placeholder="cth: john.doe" {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={editForm.control}
-                                name="email"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Email</FormLabel>
-                                        <FormControl>
-                                            <Input placeholder="cth: john.doe@example.com" {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={editForm.control}
-                                name="isActive"
-                                render={({ field }) => (
-                                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
-                                        <div className="space-y-0.5">
-                                            <FormLabel>Status Akun</FormLabel>
-                                            <p className="text-sm text-muted-foreground">
-                                                Aktifkan atau nonaktifkan akun pengguna ini.
-                                            </p>
-                                        </div>
-                                        <FormControl>
-                                            <Switch
-                                                checked={field.value}
-                                                onCheckedChange={field.onChange}
-                                            />
-                                        </FormControl>
-                                    </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={editForm.control}
-                                name="avatar"
-                                render={({ field }) => (
-                                     <FormItem>
-                                        <FormLabel>Avatar</FormLabel>
-                                        <FormControl>
-                                            <Input type="file" accept="image/*" onChange={(e) => {
-                                                const file = e.target.files[0];
-                                                if (file) {
-                                                    field.onChange(file);
-                                                    setAvatarPreview(URL.createObjectURL(file));
-                                                }
-                                            }} />
-                                        </FormControl>
-                                         {avatarPreview && <Image src={avatarPreview} alt="Avatar Preview" className="mt-2 h-20 w-20 rounded-full object-cover" />}
-                                    </FormItem>
-                                )}
-                            />
-                            {editForm.formState.errors.root && (
-                                <p className="text-sm font-medium text-destructive">{editForm.formState.errors.root.message}</p>
-                            )}
+                           <FormField control={editForm.control} name="username" render={({ field }) => (
+                                <FormItem><FormLabel>Username</FormLabel><FormControl><Input placeholder="cth: john.doe" {...field} /></FormControl><FormMessage /></FormItem>
+                            )}/>
+                            <FormField control={editForm.control} name="email" render={({ field }) => (
+                                <FormItem><FormLabel>Email</FormLabel><FormControl><Input placeholder="cth: john.doe@example.com" {...field} /></FormControl><FormMessage /></FormItem>
+                            )}/>
+                            <FormField control={editForm.control} name="isActive" render={({ field }) => (
+                                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                                    <div className="space-y-0.5"><FormLabel>Status Akun</FormLabel><p className="text-sm text-muted-foreground">Aktifkan atau nonaktifkan akun.</p></div>
+                                    <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                                </FormItem>
+                            )}/>
                             <DialogFooter>
                                 <Button type="submit" disabled={editForm.formState.isSubmitting}>
                                     {editForm.formState.isSubmitting ? 'Menyimpan...' : 'Simpan Perubahan'}
@@ -467,20 +371,17 @@ export default function UserManagementContent() {
                 </DialogContent>
             </Dialog>
 
-            {/* Dialog Konfirmasi Hapus */}
              <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
                         <AlertDialogTitle>Anda yakin ingin menghapus pengguna ini?</AlertDialogTitle>
                         <AlertDialogDescription>
-                            Aksi ini tidak dapat dibatalkan. Ini akan menghapus pengguna secara permanen.
-                            <br/>
-                            <strong>{selectedUser?.username}</strong>
+                            Aksi ini tidak dapat dibatalkan. Ini akan menghapus pengguna <strong>{selectedUser?.username}</strong> secara permanen.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                         <AlertDialogCancel>Batal</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleDeleteUser} className="bg-red-600 hover:bg-red-700">Hapus</AlertDialogAction>
+                        <AlertDialogAction onClick={handleDeleteUser} className="bg-destructive hover:bg-destructive/90">Hapus</AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>

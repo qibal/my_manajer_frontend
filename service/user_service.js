@@ -12,7 +12,7 @@ const userService = {
   // Menambahkan fungsi untuk mendapatkan user berdasarkan ID
   getUserById: async (id) => {
     try {
-      const response = await backend.get(`/users/${id}`);
+      const response = await backend.get(`/users/${id}`); // Kembali ke endpoint yang diautentikasi
       return response.data.data; // Sesuaikan dengan struktur respons API Anda
     } catch (error) {
       throw error.response?.data?.message || 'Failed to fetch user by ID';

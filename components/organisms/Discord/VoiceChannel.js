@@ -34,28 +34,7 @@ export default function VoiceChannel({ channel }) {
 
     return (
         <div className="flex flex-col items-center justify-center h-full p-8">
-            <div className="text-center mb-8">
-                <Volume2 className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
-                <h2 className="text-2xl font-bold mb-2">Voice Channel: {channel.name}</h2>
-                <p className="text-muted-foreground">Connect to start talking with your team</p>
-            </div>
-
-            <div className="flex items-center space-x-4">
-                <Button variant={isMuted ? "destructive" : "default"} size="lg" onClick={() => setIsMuted(!isMuted)}>
-                    {isMuted ? <MicOff className="w-5 h-5 mr-2" /> : <Mic className="w-5 h-5 mr-2" />}
-                    {isMuted ? "Unmute" : "Mute"}
-                </Button>
-
-                <Button variant={isVideoOn ? "default" : "secondary"} size="lg" onClick={() => setIsVideoOn(!isVideoOn)}>
-                    {isVideoOn ? <Video className="w-5 h-5 mr-2" /> : <VideoOff className="w-5 h-5 mr-2" />}
-                    {isVideoOn ? "Stop Video" : "Start Video"}
-                </Button>
-
-                <Button variant="destructive" size="lg">
-                    <PhoneOff className="w-5 h-5 mr-2" />
-                    Leave
-                </Button>
-            </div>
+            <p className="text-xl font-semibold text-muted-foreground">Masih di kembangkan</p>
         </div>
     )
 }

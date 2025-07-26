@@ -41,6 +41,8 @@ import ExcalidrawWrapper from '@/components/Excalidraw/excalidraw';
 import createWebSocketService from "@/service/messages_webhook";
 
 const ChatChannel = ({ channel, onSyncStatusChange, syncCounter }) => {
+    const { user: currentUser, token } = useAuth(); // Mengambil token dari useAuth
+
     const [message, setMessage] = useState("")
     const [messages, setMessages] = useState([]); // State untuk pesan dari WebSocket
     const wsService = useRef(null);
@@ -54,9 +56,10 @@ const ChatChannel = ({ channel, onSyncStatusChange, syncCounter }) => {
     const pinnedMessages = messages.filter(msg => msg.isPinned); // Gunakan isPinned sesuai struktur backend
 
     useEffect(() => {
-        if (!channel || !channel.id) {
-            console.log("ChatChannel: No channel or channel ID available.");
-            setMessages([]); // Clear messages if no channel selected
+        // Jangan konek jika tidak ada channel, ID, atau token
+        if (!channel || !channel.id || !token) { 
+            console.log("ChatChannel: WebSocket setup skipped (no channel, ID, or token).");
+            setMessages([]);
             if (wsService.current) {
                 wsService.current.disconnect();
                 wsService.current = null;
@@ -119,8 +122,12 @@ const ChatChannel = ({ channel, onSyncStatusChange, syncCounter }) => {
             wsService.current.disconnect();
         }
 
-        // Create new WebSocket service instance
-        wsService.current = createWebSocketService(channel.id, handleNewMessage);
+        // Buat instance layanan WebSocket baru dengan format objek argument
+        wsService.current = createWebSocketService({
+            channelId: channel.id,
+            token: token,
+            onMessageReceived: handleNewMessage
+        });
         wsService.current.connect();
 
         // Cleanup on unmount
@@ -130,7 +137,7 @@ const ChatChannel = ({ channel, onSyncStatusChange, syncCounter }) => {
                 wsService.current = null;
             }
         };
-    }, [channel, onSyncStatusChange]);
+    }, [channel, token, onSyncStatusChange]); // Menambahkan token sebagai dependency
 
     useEffect(() => {
         if (syncCounter > 0 && wsService.current) {
@@ -183,9 +190,11 @@ const ChatChannel = ({ channel, onSyncStatusChange, syncCounter }) => {
     };
 
     const handleSendMessage = () => {
-        if (message.trim() && wsService.current) {
+        if (message.trim() && wsService.current && currentUser) { // Tambahkan pengecekan currentUser
             const messagePayload = {
-                userID: currentUser.id, // Gunakan ID user yang sebenarnya
+                // UserID di sini sebenarnya tidak lagi wajib karena backend akan menggunakan ID dari token.
+                // Namun, mengirimkannya bisa berguna untuk echo atau konfirmasi di client.
+                userID: currentUser.id, 
                 content: message,
                 messageType: 'text',
                 channelId: channel.id,
@@ -193,7 +202,7 @@ const ChatChannel = ({ channel, onSyncStatusChange, syncCounter }) => {
             wsService.current.sendMessage({ type: 'client_message', payload: messagePayload });
             setMessage('');
         } else {
-            console.warn("ChatChannel: Cannot send message. WebSocket service not ready or message is empty.");
+            console.warn("ChatChannel: Cannot send message. WebSocket service not ready, message is empty, or user is not available.");
         }
     };
 
@@ -205,6 +214,14 @@ const ChatChannel = ({ channel, onSyncStatusChange, syncCounter }) => {
         }
     };
 
+    if (!currentUser) {
+        return (
+            <div className="flex flex-col h-full items-center justify-center text-muted-foreground">
+                <p>Memuat data pengguna...</p>
+            </div>
+        );
+    }
+    
     const currentUserName = currentUser.name;
 
     return (

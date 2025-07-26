@@ -65,6 +65,7 @@ import { ContextMenu, ContextMenuTrigger, ContextMenuContent, ContextMenuItem, C
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@/components/Shadcn/dropdown-menu"
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/Shadcn/popover"
 import Link from 'next/link';
+import Image from 'next/image';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/Shadcn/collapsible";
 import ExcalidrawWrapper from '@/components/Excalidraw/excalidraw';
 import ChatChannel from "@/components/organisms/Discord/ChatChannel"
@@ -95,18 +96,15 @@ export default function BusinessServers({ businessData, selectedBusiness, setSel
             <ScrollArea className="flex-1 w-full">
                 <div className="flex flex-col items-center space-y-2 px-2">
                     <Tooltip >
-                        <Link href="/app_management" passHref>
+                        <Link href="/app_management/dashboard" passHref>
                         <TooltipTrigger asChild>
-                            <Button
-                                variant={"default"}
+                            <div
+                                variant={"ghost"}
                                 size="icon"
-                                className={`w-12 h-12 rounded-2xl transition-all duration-200`}
+                                className={`w-12 h-12 rounded-2xl transition-all duration-200 flex items-center justify-center`}
                             >
-                                <Avatar className="w-8 h-8">
-                                    <AvatarImage src={"/placeholder.svg"} />
-                                    <AvatarFallback>A</AvatarFallback>
-                                </Avatar>
-                            </Button>
+                                <Image src="/image/asset1.png" alt="App Management" width={32} height={32} />
+                            </div>
                         </TooltipTrigger>
                         </Link>
                         <TooltipContent side="right">
