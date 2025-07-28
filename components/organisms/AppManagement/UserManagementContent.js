@@ -129,12 +129,13 @@ export default function UserManagementContent() {
     const fetchData = async () => {
         try {
             setLoading(true);
-            const [usersData, rolesData] = await Promise.all([
+            const [usersData, rolesResponse] = await Promise.all([
                 userService.getUsers(),
                 roleService.getAll()
             ]);
             setUsers(usersData || []);
-            setRoles(rolesData || []);
+            // Extract the 'data' array from the response object
+            setRoles(rolesResponse?.data || []);
             setError(null);
         } catch (err) {
             setError(err.message || 'Gagal memuat data.');

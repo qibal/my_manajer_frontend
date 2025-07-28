@@ -24,41 +24,48 @@ export function AuthProvider({ children }) {
         }
     }, []);
 
-    // Efek untuk memuat data pengguna setiap kali token berubah
-    useEffect(() => {
-        const loadUserFromToken = async () => {
-            if (!token) {
-                setUser(null);
-                setLoading(false);
+    // Definisikan fungsi loadUser agar bisa dipanggil ulang
+    const loadUserFromToken = async (currentToken) => {
+        if (!currentToken) {
+            setUser(null);
+            setLoading(false);
+            return;
+        }
+
+        setLoading(true);
+        try {
+            const decodedToken = jwtDecode(currentToken);
+            if (decodedToken.exp * 1000 < Date.now()) {
+                console.warn('JWT token has expired.');
+                logout();
                 return;
             }
 
-            setLoading(true);
-            try {
-                const decodedToken = jwtDecode(token);
-                if (decodedToken.exp * 1000 < Date.now()) {
-                    console.warn('JWT token has expired.');
-                    logout(); // Gunakan fungsi logout untuk membersihkan semuanya
-                    return;
-                }
-
-                const userData = await userService.getUserById(decodedToken.user_id);
-                if (userData) {
-                    setUser({ ...userData });
-                } else {
-                    console.warn('User data not found for ID from token.');
-                    logout();
-                }
-            } catch (error) {
-                console.error('Failed to decode token or fetch user.', error);
+            const userData = await userService.getUserById(decodedToken.user_id);
+            if (userData) {
+                setUser({ ...userData });
+            } else {
+                console.warn('User data not found for ID from token.');
                 logout();
-            } finally {
-                setLoading(false);
             }
-        };
+        } catch (error) {
+            console.error('Failed to decode token or fetch user.', error);
+            logout();
+        } finally {
+            setLoading(false);
+        }
+    };
 
-        loadUserFromToken();
-    }, [token]); // Dijalankan saat token berubah
+    // Efek untuk memuat data pengguna setiap kali token berubah
+    useEffect(() => {
+        loadUserFromToken(token);
+    }, [token]);
+
+    const refetchUser = () => {
+        if (token) {
+            loadUserFromToken(token);
+        }
+    };
 
     const login = async (emailOrUsername, password) => {
         try {
@@ -85,9 +92,8 @@ export function AuthProvider({ children }) {
     const isAuthenticated = !!user;
     const isSuperAdmin = !!user?.roles?.system?.includes('super_admin');
 
-    // Do NOT export setUser. The login/logout functions are the public API.
     return (
-        <AuthContext.Provider value={{ user, isAuthenticated, isSuperAdmin, loading, login, logout }}>
+        <AuthContext.Provider value={{ user, isAuthenticated, isSuperAdmin, loading, login, logout, refetchUser }}>
             {children}
         </AuthContext.Provider>
     );

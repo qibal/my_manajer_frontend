@@ -34,6 +34,7 @@ import { Separator } from "@/components/Shadcn/separator"
 import { Badge } from "@/components/Shadcn/badge"
 import { Checkbox } from "@/components/Shadcn/checkbox"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/Shadcn/popover"
+import { ScrollArea } from "@/components/Shadcn/scroll-area"
 
 
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger } from "@/components/Shadcn/sheet"
@@ -267,49 +268,39 @@ export default function DatabaseChannel({ channel }) {
     if (!newColumnName.trim() || !currentDatabase) return
 
     try {
-      const newColumn = {
-        name: newColumnName,
-        type: newColumnType,
-        order: columns.length + 1,
-      }
-      
-      const updatedColumns = [...columns.map(col => ({
-          id: col.id,
-          name: col.name,
-          type: col.type,
-          order: col.order,
-          options: col.options ? col.options.map(opt => ({ id: opt.id, value: opt.value, order: opt.order })) : undefined
-      })), newColumn];
+        const newColumn = {
+            name: newColumnName,
+            type: newColumnType,
+            order: (columns.length > 0 ? Math.max(...columns.map(c => c.order)) : 0) + 1,
+            // Tambahkan options kosong jika tipenya select untuk konsistensi
+            options: newColumnType === 'select' ? [] : undefined,
+        };
 
-      const updatedDatabaseData = {
-          ...currentDatabase,
-          columns: updatedColumns,
-      };
-      // Hapus ID dari objek utama jika ada, karena updateDatabase tidak menerimanya di body
-      delete updatedDatabaseData.id;
-      delete updatedDatabaseData.createdAt;
-      delete updatedDatabaseData.updatedAt;
-      delete updatedDatabaseData.authorId;
-      delete updatedDatabaseData.channelId;
-      delete updatedDatabaseData.rows; // Rows akan diupdate secara terpisah
+        // Buat salinan kolom yang ada dan tambahkan yang baru
+        const updatedColumns = [...columns, newColumn];
 
-      const res = await databaseService.updateDatabase(currentDatabase.id, updatedDatabaseData);
-      if (res && res.data) {
-        setColumns(res.data.columns.sort((a,b) => a.order - b.order));
-        // Perbarui juga selectOptions jika ada kolom select baru
-        setSelectOptions(res.data.columns.flatMap(col => 
-            col.type === 'select' && col.options ? col.options.map(opt => ({ ...opt, columnId: col.id })) : []
-        ));
-        setNewColumnName("");
-        setNewColumnType("text");
-        setIsAddColumnOpen(false);
-        toast.success("Kolom berhasil ditambahkan.");
-        // Perbarui rows juga karena penambahan kolom mungkin memengaruhi struktur rows
-        setRows(res.data.rows || []);
-      }
+        // Hanya kirim array kolom yang diperbarui
+        const payload = { columns: updatedColumns };
+
+        const res = await databaseService.updateDatabase(currentDatabase.id, payload);
+
+        if (res && res.data) {
+            const updatedDb = res.data;
+            setCurrentDatabase(updatedDb);
+            setColumns(updatedDb.columns.sort((a, b) => a.order - b.order));
+            setRows(updatedDb.rows || []);
+            setSelectOptions(updatedDb.columns.flatMap(col => 
+                col.type === 'select' && col.options ? col.options.map(opt => ({ ...opt, columnId: col.id })) : []
+            ));
+            
+            setNewColumnName("");
+            setNewColumnType("text");
+            setIsAddColumnOpen(false);
+            toast.success("Kolom berhasil ditambahkan.");
+        }
     } catch (error) {
-      console.error("Error adding column:", error)
-      toast.error("Gagal menambahkan kolom.");
+        console.error("Error adding column:", error);
+        toast.error("Gagal menambahkan kolom.");
     }
   }
 
@@ -338,7 +329,14 @@ export default function DatabaseChannel({ channel }) {
         const updatedColumn = { name: newName };
         const res = await databaseService.updateColumnInDatabase(currentDatabase.id, columnId, updatedColumn);
         if (res && res.data) {
-            setColumns(res.data.columns.sort((a,b) => a.order - b.order));
+            const updatedDb = res.data;
+            setCurrentDatabase(updatedDb);
+            setColumns(updatedDb.columns.sort((a, b) => a.order - b.order));
+            setRows(updatedDb.rows || []);
+            setSelectOptions(updatedDb.columns.flatMap(col => 
+                col.type === 'select' && col.options ? col.options.map(opt => ({ ...opt, columnId: col.id })) : []
+            ));
+            
             setSelectedColumnPopover(null);
             setEditColumnName("");
             toast.success("Kolom berhasil diperbarui.");
@@ -783,14 +781,14 @@ export default function DatabaseChannel({ channel }) {
         </header> */}
 
         <div className="flex-1 p-6">
-          <div className="space-y-6">
+          <div className="space-y-6 flex flex-col h-full">
             {/* Database Header */}
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between flex-shrink-0">
               <h1 className="text-2xl font-bold">{currentDatabase?.title}</h1>
             </div>
 
             {/* Toolbar */}
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between flex-shrink-0">
               {/* Left side - View buttons */}
               <div className="flex items-center gap-2">
                 <Button
@@ -871,196 +869,196 @@ export default function DatabaseChannel({ channel }) {
             </div>
 
             {/* Database Table using shadcn Table component */}
-            <div className="border rounded-lg overflow-hidden">
-              <div className="overflow-x-auto">
+            <div className="border rounded-lg relative flex-1 min-h-0">
+              <ScrollArea className="absolute inset-0">
                 <Table>
-                  <TableHeader>
+                  <TableHeader className="sticky top-0 z-10 bg-background whitespace-nowrap">
                     <TableRow>
                       {columns.map((column) => (
                         <TableHead key={column.id} className="w-[200px] h-[60px]">
                           <Popover
-                            open={selectedColumnPopover === column.id}
-                            onOpenChange={(open) => {
-                                setSelectedColumnPopover(open ? column.id : null);
-                                if (open) {
-                                    setEditColumnName(column.name);
-                                }
-                            }}
-                          >
-                            <PopoverTrigger asChild>
-                              <div className="flex items-center justify-between group cursor-pointer hover:bg-muted/50 p-1 rounded">
-                                <div className="flex items-center gap-2">
-                                  <span className="font-medium">{column.name}</span>
-                                  <Badge variant="outline" className="text-xs">
-                                    {column.type}
-                                  </Badge>
-                                </div>
-                              </div>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-96">
-                              {column.type === "select" ? (
-                                renderSelectOptionsManagement(column)
-                              ) : (
-                                <div className="space-y-4">
-                                  <div className="space-y-2">
-                                    <h4 className="font-medium">Column Options</h4>
-                                    <p className="text-sm text-muted-foreground">Manage this column settings.</p>
+                              open={selectedColumnPopover === column.id}
+                              onOpenChange={(open) => {
+                                  setSelectedColumnPopover(open ? column.id : null);
+                                  if (open) {
+                                      setEditColumnName(column.name);
+                                  }
+                              }}
+                            >
+                              <PopoverTrigger asChild>
+                                <div className="flex items-center justify-between group cursor-pointer hover:bg-muted/50 p-1 rounded">
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-medium">{column.name}</span>
+                                    <Badge variant="outline" className="text-xs">
+                                      {column.type}
+                                    </Badge>
                                   </div>
-                                  <div className="space-y-3">
+                                </div>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-96">
+                                {column.type === "select" ? (
+                                  renderSelectOptionsManagement(column)
+                                ) : (
+                                  <div className="space-y-4">
                                     <div className="space-y-2">
-                                      <label className="text-sm font-medium">Column Name</label>
-                                      <Input
-                                        placeholder="Enter column name"
-                                        value={editColumnName}
-                                        onChange={(e) => setEditColumnName(e.target.value)}
-                                      />
+                                      <h4 className="font-medium">Column Options</h4>
+                                      <p className="text-sm text-muted-foreground">Manage this column settings.</p>
                                     </div>
-                                    <div className="flex gap-2">
-                                      <Button
-                                        onClick={() => handleEditColumn(column.id, editColumnName)}
-                                        className="flex-1"
-                                      >
-                                        <Edit3 className="h-4 w-4 mr-2" />
-                                        Update
-                                      </Button>
-                                      <AlertDialog>
-                                        <AlertDialogTrigger asChild>
-                                          <Button variant="destructive">
-                                            <Trash2 className="h-4 w-4 mr-2" />
-                                            Delete
-                                          </Button>
-                                        </AlertDialogTrigger>
-                                        <AlertDialogContent>
-                                          <AlertDialogHeader>
-                                            <AlertDialogTitle>Delete Column</AlertDialogTitle>
-                                            <AlertDialogDescription>
-                                              Are you sure you want to delete the column {column.name}? This action
-                                              cannot be undone and will remove all data in this column.
-                                            </AlertDialogDescription>
-                                          </AlertDialogHeader>
-                                          <AlertDialogFooter>
-                                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                            <AlertDialogAction
-                                              onClick={() => handleDeleteColumn(column.id)}
-                                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                            >
-                                              Delete Column
-                                            </AlertDialogAction>
-                                          </AlertDialogFooter>
-                                        </AlertDialogContent>
-                                      </AlertDialog>
+                                    <div className="space-y-3">
+                                      <div className="space-y-2">
+                                        <label className="text-sm font-medium">Column Name</label>
+                                        <Input
+                                          placeholder="Enter column name"
+                                          value={editColumnName}
+                                          onChange={(e) => setEditColumnName(e.target.value)}
+                                        />
+                                      </div>
+                                      <div className="flex gap-2">
+                                        <Button
+                                          onClick={() => handleEditColumn(column.id, editColumnName)}
+                                          className="flex-1"
+                                        >
+                                          <Edit3 className="h-4 w-4 mr-2" />
+                                          Update
+                                        </Button>
+                                        <AlertDialog>
+                                          <AlertDialogTrigger asChild>
+                                            <Button variant="destructive">
+                                              <Trash2 className="h-4 w-4 mr-2" />
+                                              Delete
+                                            </Button>
+                                          </AlertDialogTrigger>
+                                          <AlertDialogContent>
+                                            <AlertDialogHeader>
+                                              <AlertDialogTitle>Delete Column</AlertDialogTitle>
+                                              <AlertDialogDescription>
+                                                Are you sure you want to delete the column {column.name}? This action
+                                                cannot be undone and will remove all data in this column.
+                                              </AlertDialogDescription>
+                                            </AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                              <AlertDialogAction
+                                                onClick={() => handleDeleteColumn(column.id)}
+                                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                              >
+                                                Delete Column
+                                              </AlertDialogAction>
+                                            </AlertDialogFooter>
+                                          </AlertDialogContent>
+                                        </AlertDialog>
+                                      </div>
                                     </div>
                                   </div>
+                                )}
+                              </PopoverContent>
+                            </Popover>
+                          </TableHead>
+                        ))}
+                        {/* Add Column Button */}
+                        <TableHead className="w-[60px]">
+                          <Popover open={isAddColumnOpen} onOpenChange={setIsAddColumnOpen}>
+                            <PopoverTrigger asChild>
+                              <Button size="sm" variant="ghost" className="h-8 w-8 p-0">
+                                <Plus className="h-4 w-4" />
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-80">
+                              <div className="space-y-4">
+                                <div className="space-y-2">
+                                  <h4 className="font-medium">Add New Column</h4>
+                                  <p className="text-sm text-muted-foreground">Create a new column for your database.</p>
                                 </div>
-                              )}
+                                <div className="space-y-3">
+                                  <div className="space-y-2">
+                                    <label className="text-sm font-medium">Column Name</label>
+                                    <Input
+                                      placeholder="Enter column name"
+                                      value={newColumnName}
+                                      onChange={(e) => setNewColumnName(e.target.value)}
+                                    />
+                                  </div>
+                                  <div className="space-y-2">
+                                    <label className="text-sm font-medium">Column Type</label>
+                                    <Select value={newColumnType} onValueChange={setNewColumnType}>
+                                          <SelectTrigger>
+                                        <SelectValue />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                              <SelectItem value="text">Text</SelectItem>
+                                              <SelectItem value="number">Number</SelectItem>
+                                              <SelectItem value="date">Date</SelectItem>
+                                              <SelectItem value="select">Select</SelectItem>
+                                        <SelectItem value="boolean">Boolean</SelectItem>
+                                          </SelectContent>
+                                      </Select>
+                                  </div>
+                                  <Button onClick={handleAddColumn} className="w-full">
+                                    <Plus className="h-4 w-4 mr-2" />
+                                    Add Column
+                                  </Button>
+                                  </div>
+                              </div>
                             </PopoverContent>
                           </Popover>
                         </TableHead>
-                      ))}
-                      {/* Add Column Button */}
-                      <TableHead className="w-[60px]">
-                        <Popover open={isAddColumnOpen} onOpenChange={setIsAddColumnOpen}>
-                          <PopoverTrigger asChild>
-                            <Button size="sm" variant="ghost" className="h-8 w-8 p-0">
-                              <Plus className="h-4 w-4" />
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-80">
-                <div className="space-y-4">
-                              <div className="space-y-2">
-                                <h4 className="font-medium">Add New Column</h4>
-                                <p className="text-sm text-muted-foreground">Create a new column for your database.</p>
-                              </div>
-                              <div className="space-y-3">
-                                <div className="space-y-2">
-                                  <label className="text-sm font-medium">Column Name</label>
-                                  <Input
-                                    placeholder="Enter column name"
-                                    value={newColumnName}
-                                    onChange={(e) => setNewColumnName(e.target.value)}
-                                  />
-                                </div>
-                                <div className="space-y-2">
-                                  <label className="text-sm font-medium">Column Type</label>
-                                  <Select value={newColumnType} onValueChange={setNewColumnType}>
-                                        <SelectTrigger>
-                                      <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="text">Text</SelectItem>
-                                            <SelectItem value="number">Number</SelectItem>
-                                            <SelectItem value="date">Date</SelectItem>
-                                            <SelectItem value="select">Select</SelectItem>
-                                      <SelectItem value="boolean">Boolean</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                                <Button onClick={handleAddColumn} className="w-full">
-                                  <Plus className="h-4 w-4 mr-2" />
-                                  Add Column
+                        <TableHead className="w-[60px]">
+                          <span className="sr-only">Actions</span>
+                        </TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {rows.map((row) => (
+                        <TableRow key={row.id}>
+                          {columns.map((column) => (
+                            <TableCell key={column.id} className="p-0 w-[200px] align-top">
+                              {renderCellContent(row, column)}
+                            </TableCell>
+                          ))}
+                          <TableCell className="w-[60px]"></TableCell>
+                          <TableCell className="w-[60px]">
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button size="sm" variant="ghost">
+                                  <Trash2 className="h-3 w-3" />
                                 </Button>
-                                </div>
-                            </div>
-                          </PopoverContent>
-                        </Popover>
-                      </TableHead>
-                      <TableHead className="w-[60px]">
-                        <span className="sr-only">Actions</span>
-                      </TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {rows.map((row) => (
-                      <TableRow key={row.id}>
-                        {columns.map((column) => (
-                          <TableCell key={column.id} className="p-0 w-[200px] align-top">
-                            {renderCellContent(row, column)}
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Delete Row</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Are you sure you want to delete this row? This action cannot be undone.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => handleDeleteRow(row.id)}
+                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                  >
+                                    Delete Row
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
                           </TableCell>
-                        ))}
-                        <TableCell className="w-[60px]"></TableCell>
-                        <TableCell className="w-[60px]">
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button size="sm" variant="ghost">
-                                <Trash2 className="h-3 w-3" />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Delete Row</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Are you sure you want to delete this row? This action cannot be undone.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={() => handleDeleteRow(row.id)}
-                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                >
-                                  Delete Row
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
+                        </TableRow>
+                      ))}
+                      {/* Add Row Button */}
+                      <TableRow>
+                        <TableCell colSpan={columns.length + 2} className="p-0">
+                          <div className="flex items-center p-3">
+                            <Button size="sm" variant="ghost" onClick={handleAddRow} className="h-auto px-3 flex items-center gap-2">
+                              <Plus className="h-4 w-4" />
+                              <span className="text-sm text-muted-foreground">Add new row</span>
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
-                    ))}
-                    {/* Add Row Button */}
-                    <TableRow>
-                      <TableCell colSpan={columns.length + 2} className="p-0">
-                        <div className="flex items-center p-3">
-                          <Button size="sm" variant="ghost" onClick={handleAddRow} className="h-auto px-3 flex items-center gap-2">
-                            <Plus className="h-4 w-4" />
-                            <span className="text-sm text-muted-foreground">Add new row</span>
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  </TableBody>
-                </Table>
-                    </div>
-                </div>
+                    </TableBody>
+                  </Table>
+                </ScrollArea>
+              </div>
 
             {rows.length === 0 && (
               <div className="text-center py-12 text-muted-foreground">

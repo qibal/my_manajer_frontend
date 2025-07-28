@@ -1,8 +1,6 @@
 // Impor hook React tidak lagi diperlukan karena ini adalah modul layanan biasa
 // import { useRef } from 'react';
 
-const WEBSOCKET_URL_BASE = "ws://localhost:8080/api/v1/ws/messages/";
-
 const createWebSocketService = ({ channelId, token, onMessageReceived }) => {
   let ws = null;
   let reconnectAttempts = 0;
@@ -22,8 +20,12 @@ const createWebSocketService = ({ channelId, token, onMessageReceived }) => {
     }
 
     intentionalClose = false;
+    
+    // Menggunakan environment variable untuk URL WebSocket
+    const WEBSOCKET_URL_BASE = process.env.NEXT_PUBLIC_WEBSOCKET_URL || "wss://mymanajerbackend-production.up.railway.app/api/v1/ws/messages/";
     const websocketUrl = `${WEBSOCKET_URL_BASE}${channelId}?token=${token}`;
-      console.log(`[WS] Attempting to connect to: ${websocketUrl}`); // Log URL lengkap
+    
+    console.log(`[WS] Attempting to connect to: ${websocketUrl}`); // Log URL lengkap
     console.log(`[WS] Token sent: ${token.substring(0, 10)}...`); // Log awal token
     
     // Sesuai dokumentasi MDN: Membuat instance WebSocket baru
