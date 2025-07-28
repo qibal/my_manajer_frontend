@@ -82,7 +82,7 @@ export default function BusinessLayout({ children }) {
 
   return (
     <TooltipProvider>
-      <div className="flex h-screen bg-background overflow-hidden">
+      <div className="flex h-screen bg-background">
         <BusinessServers
           businessData={businessList}
           selectedBusiness={selectedBusiness}
@@ -94,9 +94,9 @@ export default function BusinessLayout({ children }) {
           }}
           channels={channels}
         />
-        {selectedBusiness ? (
-          React.cloneElement(children, { selectedBusiness, businessList, channels })
-        ) : null}
+        <main className="flex-1 overflow-auto">
+          {selectedBusiness ? React.cloneElement(children, { selectedBusiness, businessList, channels }) : null}
+        </main>
       </div>
     </TooltipProvider>
   )
